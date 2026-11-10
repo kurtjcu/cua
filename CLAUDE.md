@@ -1,6 +1,6 @@
 # claude-usage-audit
 
-This repo audits your Claude usage across one or more accounts (e.g. a personal and a work login). See `SPEC.md` for the design and `.claude/skills/usage-audit/SKILL.md` for the run procedure (`/audit`).
+This repo audits your Claude usage across one or more accounts (e.g. a personal and a work login). See `SPEC.md` for the design and `.claude/skills/usage-audit/SKILL.md` for the run procedure (`/cua-audit`).
 
 ## Rules
 - Raw transcripts (`~/.claude*/projects`, export zips) are only ever read by `python3 -m cua …`. Agents read `out/` only. This keeps the work done here cheap and private.

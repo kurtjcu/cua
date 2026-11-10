@@ -28,7 +28,7 @@ Optional: copy `pricing.example.json` to `pricing.json` and fill in current per-
 ## Run everything with agents
 ```bash
 claude            # the account that runs the agents need not be the one being analysed
-> /audit
+> /cua-audit
 ```
 The skill does the following:
 1. Scans the account(s) in your `.env` (`~/.claude` by default), plus any export zips.
@@ -61,6 +61,21 @@ Each `out/<account>/` gets three files:
 | `--no-snippets` | Remove all prompt text from the output |
 | `--project-names hash` | Anonymise project names |
 
+## Change-management (SDL) compliance audit (optional)
+
+A second, opt-in audit — `/cua-sdl` (or `python3 -m cua sdl`) — checks whether **the agents** followed a secure-development-lifecycle / change-management process while changing code. It's judged from the same transcripts, so there's nothing extra to instrument. It looks at branch discipline, issue-tracker traceability, pull-request workflow, segregation of duties (no self-merge / self-approve / admin-bypass), committed secrets, and new dependencies, and splits findings into hard-rule **violations** and **attention** items. Things a transcript can't prove — that a human actually reviewed, UAT sign-off, release approval — are listed for a person to attest, never auto-passed.
+
+As with the usage audit, only `cua sdl` touches raw transcripts; it writes redacted compliance facts to `out/<account>/sdl.json` and `sdl-events.jsonl`, which the `sdl-compliance-analyst` agent judges against your policy.
+
+Configure it in `.env` (all optional):
+
+| Setting | Effect |
+|---|---|
+| `TICKET_PREFIX` | Issue-tracker key(s) for the traceability checks, e.g. `PROJ` or `PROJ,OPS`. Blank disables those checks. |
+| `POLICY_NAME` / `POLICY_DOC` | The change-management policy the analyst cites. Ships with a generic `.claude/skills/sdl-audit/references/example-sdl-policy.md`; point `POLICY_DOC` at your own policy extract to hold agents to it. |
+
+Leave `TICKET_PREFIX` blank (or just don't run it) and the usage audit is unaffected.
+
 ## Layout
 ```
 SPEC.md                         what is measured and why
@@ -71,8 +86,8 @@ cua/classify.py                 dev-cycle phases, correction/continue signals, p
 cua/analyze.py                  builds summary.json + samples.jsonl
 cua/report.py                   per-account report + comparison
 .claude/agents/                 efficiency, blockers, patterns analysts + cross-account comparator
-.claude/skills/usage-audit/     the orchestration procedure (/audit)
-.claude/skills/sdl-audit/       optional change-management compliance audit (cua sdl)
+.claude/skills/usage-audit/     the orchestration procedure (/cua-audit)
+.claude/skills/sdl-audit/       optional change-management compliance audit (/cua-sdl)
 cua/config.py                   loads .env (account dirs, labels, ticket prefix, policy)
 tests/                          unit tests + synthetic fixture generator
 ```
