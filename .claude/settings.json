@@ -1,0 +1,31 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python3 -m cua scan:*)",
+      "Bash(python3 -m cua compare:*)",
+      "Bash(python3 -m cua *)",
+      "Bash(python3 -m unittest:*)",
+      "Bash(python3 tests/make_fixtures.py:*)",
+      "Bash(ls:*)",
+      "Bash(test -d:*)",
+      "Read(./**)",
+      "Write(./out/**)",
+      "Edit(./out/**)",
+      "Edit(/.claude/skills/usage-audit/**)"
+    ],
+    "deny": [
+      "Read(~/.claude/projects/**/*.jsonl)",
+      "Read(~/.claude/projects/**/subagents/**)",
+      "Read(~/.claude/projects/**/tool-results/**)",
+      "Read(~/.claude-work/projects/**/*.jsonl)",
+      "Read(~/.claude-work/projects/**/subagents/**)",
+      "Read(~/.claude-work/projects/**/tool-results/**)",
+      "Read(**/conversations.json)",
+      "Read(./exports/**)",
+      "Bash(git push:*)",
+      "Bash(curl:*)",
+      "Bash(wget:*)",
+      "WebFetch"
+    ]
+  }
+}

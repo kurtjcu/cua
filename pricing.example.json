@@ -1,0 +1,7 @@
+{
+  "_note": "USD per million tokens. Fill in current list prices for the models you use; keys are substrings matched against the model id. Copy to pricing.json to enable cost estimates.",
+  "opus":    {"input": 0, "output": 0, "cache_write": 0, "cache_read": 0},
+  "sonnet":  {"input": 0, "output": 0, "cache_write": 0, "cache_read": 0},
+  "haiku":   {"input": 0, "output": 0, "cache_write": 0, "cache_read": 0},
+  "default": {"input": 0, "output": 0, "cache_write": 0, "cache_read": 0}
+}
