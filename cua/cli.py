@@ -47,6 +47,16 @@ def project_selected(project: str | None, include: list[str] | None, exclude: li
     return not (exclude and hit(exclude))
 
 
+def _apply_env_account(a, env):
+    """When no --include/--exclude-project flags were passed, default the project filter
+    from the .env account whose label matches a.label (so a shared-folder personal/work
+    split runs from .env with no flags). Returns the matched account dict, or None."""
+    acct = config.account_for_label(env, a.label)
+    if acct and not a.include_project and not a.exclude_project:
+        a.include_project, a.exclude_project = config.label_filters(env, a.label)
+    return acct
+
+
 def _history_in_window(h: dict, since) -> bool:
     if since is None:
         return True
@@ -63,10 +73,11 @@ def projects_realpath(config_dir: str) -> str | None:
 
 def cmd_scan(a) -> int:
     env = config.load_env()
-    if not a.claude_dir and not a.export:
-        a.claude_dir = [env.get("CLAUDE_DIR") or "~/.claude"]
     if not a.label:
         a.label = env.get("LABEL_1") or "me"
+    acct = _apply_env_account(a, env)
+    if not a.claude_dir and not a.export:
+        a.claude_dir = [(acct and acct["claude_dir"]) or env.get("CLAUDE_DIR") or "~/.claude"]
     sessions, history = [], []
     perm = None
     project_dirs = []
@@ -140,6 +151,14 @@ def cmd_scan(a) -> int:
 
 def cmd_waits(a) -> int:
     from . import waits
+    env = config.load_env()
+    if not a.label:
+        a.label = env.get("LABEL_1") or "me"
+    acct = _apply_env_account(a, env)
+    if not a.claude_dir:
+        a.claude_dir = (acct and acct["claude_dir"]) or env.get("CLAUDE_DIR") or "~/.claude"
+    if not a.prompt_log:
+        a.prompt_log = os.path.expanduser(env.get("PROMPT_LOG") or "")
     since = _since(a.since)
     d = os.path.expanduser(a.claude_dir)
     ss = [s for s in claude_code.load_sessions(d, a.label, since)
@@ -180,10 +199,11 @@ def cmd_sdl(a) -> int:
     distilled compliance facts for the sdl-compliance-analyst). Only this layer touches transcripts."""
     from . import sdl
     env = config.load_env()
-    if not a.claude_dir:
-        a.claude_dir = [env.get("CLAUDE_DIR") or "~/.claude"]
     if not a.label:
         a.label = env.get("LABEL_1") or "me"
+    acct = _apply_env_account(a, env)
+    if not a.claude_dir:
+        a.claude_dir = [(acct and acct["claude_dir"]) or env.get("CLAUDE_DIR") or "~/.claude"]
     since = _since(a.since)
     ss = []
     for d in a.claude_dir or []:
@@ -363,11 +383,13 @@ def main(argv=None) -> int:
                    help="drop sessions whose project path matches (repeatable)")
     s.set_defaults(func=cmd_scan)
     w = sub.add_parser("waits", help="where sessions sit still: permission prompt waits and other pauses")
-    w.add_argument("--label", required=True)
-    w.add_argument("--claude-dir", required=True)
+    w.add_argument("--label", help="account name in output (default: LABEL_1 from .env, else 'me')")
+    w.add_argument("--claude-dir", help="Claude Code config dir (default: CLAUDE_DIR from .env, else ~/.claude)")
     w.add_argument("--out", required=True)
     w.add_argument("--since", default="30d")
-    w.add_argument("--prompt-log", default="", help="optional permission-prompt hook log (tab-separated); enriches wait attribution")
+    w.add_argument("--prompt-log", default="",
+                   help="permission-prompt hook log (tab-separated); default: PROMPT_LOG from .env. Without it, "
+                        "prompts are inferred from allow rules and approved_prompts is empty")
     w.add_argument("--include-project", action="append", metavar="GLOB")
     w.add_argument("--exclude-project", action="append", metavar="GLOB")
     w.set_defaults(func=cmd_waits)

@@ -47,6 +47,12 @@ python3 -m cua lint --root ~/code --out out/lint
 Add `--account 'LABEL=GLOB'` (repeatable) to label projects by path when you audit more than one account, e.g. `--account 'work=/path/to/work-repos/*'`.
 It reads config files only (CLAUDE.md, skills, agents, commands, hooks, settings, `*/memory/*.md`, MCP server names from `~/.claude.json`) and writes `out/lint/lint.{json,md}`. Pass `out/lint/lint.md` to the comparator in step 3.
 
+**If `PROMPT_LOG` is set in `.env`** (you log permission prompts with a PermissionRequest hook), also run `waits` per account so the blocker analyst works from the prompts you *actually approved*, not an estimate:
+```
+python3 -m cua waits --out out/me
+```
+Two accounts: add `--label`/`--claude-dir` (and the same `--include/--exclude-project` split as scan) and run it once per account. This writes `out/<label>/waits.json`; its `approved_prompts` block is the real allow-list triage input. Skip this step when no `PROMPT_LOG` is set — the `cua scan` estimate still covers permissions.
+
 ## 2. Analyse (3 agents per account, in parallel)
 Send the Agent calls in ONE message: `usage-efficiency-analyst`, `blocker-permissions-analyst` and `prompt-pattern-analyst`, once per account you scanned (three for a single account, six for two).
 - Each prompt only needs to say: "Account: <label>. Inputs in out/<label>/. Follow your instructions." Add one line on the window and on how the accounts were split, if they were.

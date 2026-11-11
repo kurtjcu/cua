@@ -18,7 +18,8 @@ Assess your Claude usage across one or more accounts (e.g. **personal** and **wo
 ## Data sources
 | Source | Location | What it has | Limits |
 |---|---|---|---|
-| Claude Code transcripts | `<config>/projects/**/*.jsonl` (`~/.claude`, any second account dir, plus any WSL/other machines) | Prompts, tool calls and results, token usage per message, model, cwd, branch, subagent sidechains, compactions | Approved permission prompts aren't logged, so they are **inferred** from settings |
+| Claude Code transcripts | `<config>/projects/**/*.jsonl` (`~/.claude`, any second account dir, plus any WSL/other machines) | Prompts, tool calls and results, token usage per message, model, cwd, branch, subagent sidechains, compactions | Approved permission prompts aren't logged, so they are **inferred** from settings (or **measured** from an optional prompt-log hook — see below) |
+| Permission-prompt hook log (optional) | `PROMPT_LOG` in `.env` (a `PermissionRequest` hook writes it) | One row per prompt shown: time, kind, mode, project, shape, tool_use_id | Only present if you run such a hook; `cua waits` joins it to calls to measure approvals |
 | Claude Code prompt history | `<config>/history.jsonl` | Every typed prompt, including sessions since deleted | No usage data |
 | Claude Code settings | `<config>/settings*.json`, `<project>/.claude/settings*.json` | allow/deny/ask rules, defaultMode | Managed/enterprise policy files aren't read |
 | claude.ai export | Settings → Privacy → Export data (zip) | Conversations, messages, tool use, projects | No token counts (estimated at about 4 characters per token) |
@@ -78,6 +79,6 @@ Assess your Claude usage across one or more accounts (e.g. **personal** and **wo
 - **Provenance:** every recommendation names its evidence (a metric or a sample row).
 
 ## Out of scope / known gaps
-- Approved permission prompts aren't recorded. The estimate assumes the current settings applied throughout the whole period.
+- Approved permission prompts aren't recorded by Claude Code; the rule-based estimate assumes the current settings applied throughout the whole period. Set `PROMPT_LOG` (a `PermissionRequest` hook log) and `cua waits` reports the approvals it actually measured (`approved_prompts`) instead.
 - claude.ai token counts are estimates.
 - Managed/enterprise settings (for example a work org policy) aren't parsed. Check `/permissions` in Claude Code for the effective rules.

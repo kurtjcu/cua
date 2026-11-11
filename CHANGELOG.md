@@ -6,6 +6,34 @@ entry here on each release (see CONTRIBUTING.md → Releasing). Format follows
 
 ## [Unreleased]
 
+### Added
+- **Shipped prompt-logger hook.** A small, shape-only `PermissionRequest` hook now ships in
+  `hooks/`, with a consent-first installer (`python3 hooks/install.py`). It feeds
+  `cua waits`' `approved_prompts` with the prompts you actually approved, logging only the
+  *shape* of each prompt (never values or contents) to `~/.local/state/cua/prompts.log`. It
+  is a pure observer — it never allows or denies a prompt and fails open. See
+  `hooks/README.md`.
+- **Measured permission approvals.** `cua waits` now emits an `approved_prompts` rollup —
+  the prompts you actually approved (a logged prompt that was not `user_rejected`), grouped
+  by shape with a suggested allow rule and risk tier. Sourced from an optional
+  `PermissionRequest` hook log, set via `PROMPT_LOG` in `.env` or `--prompt-log`; empty when
+  no log is supplied (Claude Code does not log approvals itself).
+
+- **`.env`-driven account split.** `cua scan`, `waits` and `sdl` now default the project
+  filter from the `.env` account whose label matches `--label`, via new
+  `PROJECT_GLOB_1_EXCLUDE` / `PROJECT_GLOB_2_EXCLUDE` keys. Two accounts sharing one
+  transcript folder (a symlinked `projects/`) can finally be split entirely from `.env`
+  — the personal half excludes the work glob — instead of requiring
+  `--include/--exclude-project` flags on every call. An explicit flag still overrides.
+
+### Changed
+- `cua waits` defaults `--label`, `--claude-dir` and `--prompt-log` from `.env`, so
+  `cua waits --out out/me` works with no flags; `scan`/`sdl` default `--claude-dir` from
+  the matched `.env` account too.
+- The `/cua-audit` skill runs `cua waits` per account when `PROMPT_LOG` is set, and the
+  `blocker-permissions-analyst` prefers the measured `approved_prompts` over the
+  rule-based estimate.
+
 ## [0.1.0] - 2026-11-11
 
 First versioned release of the toolkit.

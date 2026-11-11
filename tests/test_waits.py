@@ -213,6 +213,34 @@ class TestWaits(unittest.TestCase):
         self.assertTrue(any("npm test" in s for s in why["unmatched_segs"]))
         self.assertEqual(waits.why_prompted(call("Bash", 5, command="ls"), None), {})
 
+    def test_approved_prompts_rollup(self):
+        # two approved dialogs of one shape, one rejected of another: only the approved shape
+        # appears in approved_prompts, with the real count, a suggested rule and a risk tier.
+        cs = [call("Bash", 40, at=0, command="pnpm test"),
+              call("Bash", 40, at=5, command="pnpm test"),
+              call("Bash", 40, at=10, command="git push")]
+        cs[2].denial = "user_rejected"
+        s = session(cs)
+        p = write_log([(T0.timestamp(), "prompt", "Bash"),
+                       (T0.timestamp() + 5, "prompt", "Bash"),
+                       (T0.timestamp() + 10, "prompt", "Bash")])
+        try:
+            res = waits.analyse([s], p)
+        finally:
+            os.unlink(p)
+        ap = res["approved_prompts"]
+        self.assertEqual(ap["total_approved"], 2)
+        self.assertEqual(ap["total_rejected"], 1)
+        top = ap["by_label"][0]
+        self.assertEqual((top["label"], top["approved"], top["rule"]), ("Bash: pnpm test", 2, "Bash(pnpm test:*)"))
+        self.assertEqual(top["sessions"], 1)
+        self.assertNotIn("Bash: git push", [r["label"] for r in ap["by_label"]])
+
+    def test_approved_prompts_empty_without_log(self):
+        res = waits.analyse([session([call("Bash", 40, at=0, command="pnpm test")])], "/nonexistent.log")
+        self.assertEqual(res["approved_prompts"], {"total_approved": 0, "total_rejected": 0,
+                                                   "note": res["approved_prompts"]["note"], "by_label": []})
+
     def test_missing_result_ts_is_skipped(self):
         c = ToolCall(id="a", name="Bash", input={"command": "ls"}, ts=T0)
         res = waits.analyse([session([c])], "/nonexistent.log")

@@ -31,7 +31,7 @@ from datetime import datetime, timezone
 from urllib.parse import urlparse
 
 from .permissions import (_bash_rules, _rule_matches, _rule_matches_seg, _seg_safe, bash_key, bash_segments,
-                          would_prompt)
+                          rule_key, tool_risk, would_prompt)
 from .redact import redact
 
 LOG_DEFAULT = ""  # optional permission-prompt hook log; set via --prompt-log
@@ -394,6 +394,28 @@ def analyse(sessions, log_path: str = LOG_DEFAULT, since: datetime | None = None
         day[datetime.fromtimestamp(c["epoch"], timezone.utc).strftime("%Y-%m-%d")].append(c)
     out["prompt_wait_by_day"] = sorted(({"day": k, **_cstats(v)} for k, v in day.items()),
                                        key=lambda r: -r["union_min"])[:10]
+
+    # approved dialogs: the prompts you actually said yes to, grouped by shape. Ground truth from the
+    # prompt-log hook (prompted) minus the ones the transcript marks user_rejected -- the real allow-list
+    # triage input that the rule-based estimate (cua scan's estimated_prompts_by_rule) cannot produce.
+    appr = [c for c in dlg if not c["denial"]]
+    rej = [c for c in dlg if c["denial"] == "user_rejected"]
+    ab = defaultdict(list)
+    for c in appr:
+        ab[c["label"]].append(c)
+    arows = []
+    for k, v in ab.items():
+        rk = rule_key(v[0]["_tc"])
+        arows.append({"label": k, "rule": rk, "risk": tool_risk(rk), "approved": len(v),
+                      "sessions": len({c["session"] for c in v}),
+                      "subagent_share": round(sum(not c["main"] for c in v) / len(v), 2),
+                      "example": v[0]["head"]})
+    out["approved_prompts"] = {
+        "total_approved": len(appr), "total_rejected": len(rej),
+        "note": "dialogs you approved (a logged prompt that was not user_rejected), by shape; measured "
+                "from the --prompt-log hook, not inferred. Empty when no prompt log is supplied.",
+        "by_label": sorted(arows, key=lambda r: (-r["approved"], r["label"]))[:top],
+    }
 
     # --- B. pauses that are NOT permission dialogs ---
     q = [c for c in calls if c["tool"] == "AskUserQuestion"]  # prompted or not: it is a question either way

@@ -61,6 +61,14 @@ Each `out/<account>/` gets three files:
 | `--no-snippets` | Remove all prompt text from the output |
 | `--project-names hash` | Anonymise project names |
 
+### Where time goes, and which prompts you approved (optional)
+```bash
+python3 -m cua waits --out out/me                        # uses PROMPT_LOG from .env
+```
+`waits` measures where sessions sit still — how long permission dialogs kept you waiting, and other pauses. If you log permission prompts with a `PermissionRequest` hook and set `PROMPT_LOG` in `.env`, it also emits `approved_prompts`: the prompts you actually said yes to, grouped by shape with a suggested allow rule and risk tier — the precise input for trimming your allowlist. Without a prompt log it still reports waits, but `approved_prompts` is empty (Claude Code doesn't log approvals on its own). The `/cua-audit` skill runs this step automatically when `PROMPT_LOG` is set, and the blocker analyst prefers it over the estimate.
+
+A ready-made, shape-only logger ships in [`hooks/`](hooks/) — `python3 hooks/install.py` sets it up (it asks first and only records the *shape* of each prompt, never values). See [`hooks/README.md`](hooks/README.md).
+
 ## Change-management (SDL) compliance audit (optional)
 
 A second, opt-in audit — `/cua-sdl` (or `python3 -m cua sdl`) — checks whether **the agents** followed a secure-development-lifecycle / change-management process while changing code. It's judged from the same transcripts, so there's nothing extra to instrument. It looks at branch discipline, issue-tracker traceability, pull-request workflow, segregation of duties (no self-merge / self-approve / admin-bypass), committed secrets, and new dependencies, and splits findings into hard-rule **violations** and **attention** items. Things a transcript can't prove — that a human actually reviewed, UAT sign-off, release approval — are listed for a person to attest, never auto-passed.
@@ -93,6 +101,6 @@ tests/                          unit tests + synthetic fixture generator
 ```
 
 ## Known limits
-- **Approved permission prompts aren't logged.** They are inferred from your current allow rules and defaultMode.
+- **Approved permission prompts aren't logged by Claude Code.** By default they're inferred from your current allow rules and defaultMode. To measure them instead, log prompts with a `PermissionRequest` hook and point cua at that log (`PROMPT_LOG` in `.env`, or `cua waits --prompt-log`); `waits.json`'s `approved_prompts` then shows the prompts you actually approved, by shape. See below.
 - **claude.ai exports have no token counts.** Usage there is estimated at about 4 characters per token.
 - **Managed/org policy settings aren't parsed.** Run `/permissions` in Claude Code to see the effective rules.
