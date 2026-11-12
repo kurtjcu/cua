@@ -24,10 +24,12 @@ from __future__ import annotations
 import bisect
 import hashlib
 import json
+import math
 import os
 import re
 from collections import defaultdict
 from datetime import datetime, timezone
+from decimal import Decimal
 from urllib.parse import urlparse
 
 from .permissions import (_bash_rules, _rule_matches, _rule_matches_seg, _seg_safe, bash_key, bash_segments,
@@ -46,33 +48,93 @@ NOT_WORKFLOW = {"clear", "compact", "model", "help", "list-agents", "loop", "con
 MODE_SPLIT = datetime(2026, 11, 4, 2, 0, tzinfo=timezone.utc)  # Auto mode trial starts
 
 
-def load_prompt_log(path: str, since: datetime | None = None) -> list[dict]:
-    """One dict per real permission prompt the hook saw. Old rows have 5 columns (no id, no session);
-    since 2026-11-04 ~01:30Z rows have 7: time, kind, mode, project, shape, tool_use_id, session_id."""
+# Column order hooks/prompt-logger.js writes (pinned by tests/test_prompt_logger.py:
+# TestHookContractDocs and test_column_contract_sentinels).
+PROMPT_LOG_COLUMNS = ("time", "kind", "mode", "project", "shape", "tool_use_id", "session_id", "call_hash")
+_COL = {name: i for i, name in enumerate(PROMPT_LOG_COLUMNS)}
+
+
+def new_prompt_log_stats() -> dict:
+    """Zeroed counters for load_prompt_log's `stats` out-parameter; analyse() reports them as meta.prompt_log."""
+    return {"file_found": False, "rows_read": 0, "skipped_malformed": 0, "skipped_other_kind": 0,
+            "skipped_before_since": 0, "excluded_other_account": 0, "kept": 0}
+
+
+def load_prompt_log(path: str, since: datetime | None = None, stats: dict | None = None) -> list[dict]:
+    """One dict per real permission prompt the hook saw, sorted by time. Rows have 5 columns (oldest: no id,
+    no session), 7 (since 2026-11-04 ~01:30Z: + tool_use_id, session_id) or 8 (+ call_hash); the order is
+    PROMPT_LOG_COLUMNS and a column past the row's width reads as "". The project is normalised with
+    norm_project so it compares equal to a session's `_tail`.
+    `stats`, when given (see new_prompt_log_stats), receives file_found, rows_read and a count per skip reason;
+    blank lines are not rows. Rows are classified in a fixed order: too few columns, non-prompt kind, bad
+    time, before `since`. The account filter lives in analyse(), which adds excluded_other_account and kept."""
     out = []
-    if not os.path.exists(path):
+    exists = os.path.exists(path)
+    if stats is not None:
+        stats["file_found"] = exists
+    if not exists:
         return out
+
+    def count(key: str) -> None:
+        if stats is not None:
+            stats[key] = stats.get(key, 0) + 1
+
+    def col(p: list, name: str) -> str:
+        i = _COL[name]
+        return p[i] if len(p) > i else ""
+
     with open(path, encoding="utf-8", errors="replace") as f:
         for line in f:
-            p = line.rstrip("\n").split("\t")
-            if len(p) < 5 or p[1] not in ("prompt", "prompt:reissued"):
+            line = line.rstrip("\n")
+            if not line.strip():
+                continue
+            count("rows_read")
+            p = line.split("\t")
+            if len(p) < 5:
+                count("skipped_malformed")
+                continue
+            if col(p, "kind") not in ("prompt", "prompt:reissued"):
+                count("skipped_other_kind")
                 continue
             try:
-                t = datetime.fromisoformat(p[0].replace("Z", "+00:00"))
+                t = datetime.fromisoformat(col(p, "time").replace("Z", "+00:00"))
             except ValueError:
+                count("skipped_malformed")
                 continue
             if since and t < since:
+                count("skipped_before_since")
                 continue
-            out.append({"epoch": t.timestamp(), "mode": p[2], "project": p[3], "tool": p[4].split(":", 1)[0],
-                        "id": p[5].strip() if len(p) > 5 else "", "session": p[6].strip() if len(p) > 6 else "",
-                        "hash": p[7].strip() if len(p) > 7 else ""})
+            out.append({"epoch": t.timestamp(), "mode": col(p, "mode"), "project": norm_project(col(p, "project")),
+                        "tool": col(p, "shape").split(":", 1)[0], "id": col(p, "tool_use_id").strip(),
+                        "session": col(p, "session_id").strip(), "hash": col(p, "call_hash").strip()})
     out.sort(key=lambda r: r["epoch"])
     return out
+
+
+def prompt_log_note(stats: dict) -> str:
+    """One line naming the prompt-log rows that did not reach the join, for stderr. Empty when none were excluded."""
+    if not stats.get("file_found"):
+        return "no prompt log file read"
+    parts = [(stats.get("excluded_other_account", 0), "other account"),
+             (stats.get("skipped_malformed", 0), "malformed"),
+             (stats.get("skipped_other_kind", 0), "non-prompt kind"),
+             (stats.get("skipped_before_since", 0), "before --since")]
+    total = sum(n for n, _ in parts)
+    if not total:
+        return ""
+    return f"excluded {total} of {stats.get('rows_read', 0)} rows: " + ", ".join(f"{n} {label}" for n, label in parts if n)
 
 
 def _tail(path: str | None) -> str:
     parts = [x for x in (path or "").rstrip("/").split("/") if x]
     return "/".join(parts[-2:])
+
+
+def norm_project(p: str) -> str:
+    """Project as `_tail` shapes it. The hook writes `~/code/work/proj`; a transcript records
+    `/home/u/code/work/proj`. expanduser resolves the ~ so a project one level under HOME
+    ("~/foo" vs "/home/u/foo") still agrees."""
+    return _tail(os.path.expanduser((p or "").strip()))
 
 
 def _mark(c: dict, r: dict, how: str) -> None:
@@ -81,11 +143,69 @@ def _mark(c: dict, r: dict, how: str) -> None:
     c["match"] = how
 
 
+_JS_MAX_SAFE = 2 ** 53  # beyond this JS has already rounded an integer to a double
+
+
+def _js_number(x) -> str:
+    """A number as JavaScript JSON.stringify writes it (ECMAScript Number::toString)."""
+    if isinstance(x, int):
+        if abs(x) <= _JS_MAX_SAFE:
+            return str(x)
+        try:
+            x = float(x)  # JS parsed it as a double, so 12345678901234567890 is already 12345678901234567000
+        except OverflowError:
+            # Beyond the double range JS parses Infinity, and JSON.stringify writes null. Python's json
+            # keeps the exact int, which float() cannot hold.
+            return "null"
+    if math.isnan(x) or math.isinf(x):
+        return "null"
+    if x == 0:
+        return "0"  # also -0.0
+    sign = "-" if x < 0 else ""
+    t = Decimal(repr(abs(x))).as_tuple()  # shortest round-trip digits, as JS uses
+    digits = "".join(str(d) for d in t.digits).rstrip("0") or "0"
+    n = len(t.digits) + t.exponent  # value = 0.DIGITS x 10^n
+    k = len(digits)
+    if k <= n <= 21:
+        body = digits + "0" * (n - k)
+    elif 0 < n <= 21:
+        body = digits[:n] + "." + digits[n:]
+    elif -6 < n <= 0:
+        body = "0." + "0" * (-n) + digits
+    else:
+        e = n - 1
+        body = digits[0] + ("." + digits[1:] if k > 1 else "") + "e" + ("+" if e >= 0 else "-") + str(abs(e))
+    return sign + body
+
+
+def _canon(v) -> str:
+    """Canonical JSON the way the hook builds it: JS number formatting, object keys in UTF-16 code-unit
+    order (JS .sort()), non-ASCII text written raw."""
+    if v is True:
+        return "true"
+    if v is False:
+        return "false"
+    if v is None:
+        return "null"
+    if isinstance(v, (int, float)):
+        return _js_number(v)
+    if isinstance(v, str):
+        return json.dumps(v, ensure_ascii=False)
+    if isinstance(v, list):
+        return "[" + ",".join(_canon(i) for i in v) + "]"
+    if isinstance(v, dict):
+        keys = sorted(v, key=lambda k: k.encode("utf-16-be", "surrogatepass"))
+        return "{" + ",".join(json.dumps(k, ensure_ascii=False) + ":" + _canon(v[k]) for k in keys) + "}"
+    raise TypeError(f"cannot canonicalise {type(v).__name__}")
+
+
 def call_hash(tool: str, inp: dict) -> str:
-    """Fingerprint the coach hook logs in column 8 (the PermissionRequest event has no tool_use_id):
-    12 hex of sha256 over canonical JSON of {"n": tool, "i": input}."""
-    s = json.dumps({"n": tool, "i": inp or {}}, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
-    return hashlib.sha256(s.encode("utf-8", "replace")).hexdigest()[:12]
+    """Fingerprint the permission-prompt hook logs in column 8 (the PermissionRequest event has no
+    tool_use_id): 12 hex of sha256 over canonical JSON of {"n": tool, "i": input}. Numbers and key order
+    follow JavaScript JSON.stringify, because the hook computes the hash in JS and JSON.parse discards
+    the number's text (1.0 is just 1)."""
+    # Known residual: JS escapes lone UTF-16 surrogates and this does not; no real payload carries them.
+    return hashlib.sha256(_canon({"n": tool, "i": inp or {}}).encode("utf-8", "replace")).hexdigest()[:12]
 
 
 def match_prompts(calls: list[dict], log: list[dict]) -> dict:
@@ -297,8 +417,193 @@ def _dialog_summary(cs: list[dict], n_calls: int | None = None) -> dict:
     return out
 
 
-def analyse(sessions, log_path: str = LOG_DEFAULT, since: datetime | None = None, top: int = 25,
-            perm_for_session=None) -> dict:
+def _prompted(calls: list[dict]) -> list[dict]:
+    """Calls that raised a logged permission prompt, in calls order."""
+    return [c for c in calls if c["prompted"]]
+
+
+def _dialogs(calls: list[dict]) -> list[dict]:
+    """Prompted calls that are permission dialogs: everything but questions and async tools."""
+    return [c for c in _prompted(calls) if c["group"] not in ("question", "async")]
+
+
+def _human(calls: list[dict]) -> list[dict]:
+    """Dialogs a human answered (group "human"), in calls order."""
+    return [c for c in _dialogs(calls) if c["group"] == "human"]
+
+
+def rollup_dialog_groups(calls: list[dict]) -> dict:
+    """The `prompt_wait` section: dialog counts per group and the wait stats of each human-relevant slice."""
+    pr, dlg, human = _prompted(calls), _dialogs(calls), _human(calls)
+    return {
+        "dialogs": len(dlg),
+        "groups": {g: sum(c["group"] == g for c in pr) for g in ("lt2s", "mid", "human", "burst", "question", "async")},
+        "human": _cstats(human),
+        "human_main_thread": _cstats([c for c in human if c["main"]]),
+        "human_subagent": _cstats([c for c in human if not c["main"]]),
+        "burst": _cstats([c for c in dlg if c["group"] == "burst"]),
+        "lt2s": _cstats([c for c in dlg if c["group"] == "lt2s"]),
+        "human_gt_60s": sum(c["lat"] > 60 for c in human), "human_gt_600s": sum(c["lat"] > 600 for c in human),
+    }
+
+
+def rollup_by_label(calls: list[dict], top: int) -> list[dict]:
+    """The `prompt_wait_by_label` section: human waits per label, top `top` by descending union_min (ties keep
+    calls order). Labels compare as Python str, with no Unicode normalisation."""
+    by = defaultdict(list)
+    for c in _human(calls):
+        by[c["label"]].append(c)
+    rows = []
+    for k, v in by.items():
+        st = _cstats(v)
+        st.update(label=k, subagent_share=round(sum(not c["main"] for c in v) / len(v), 2),
+                  denied=sum(1 for c in v if c["denial"]), example=v[0]["head"])
+        rows.append(st)
+    return sorted(rows, key=lambda r: -r["union_min"])[:top]
+
+
+def rollup_by_project(calls: list[dict]) -> list[dict]:
+    """The `prompt_wait_by_project` section: human waits per project tail, top 15 by descending union_min."""
+    pj = defaultdict(list)
+    for c in _human(calls):
+        pj[c["tail"]].append(c)
+    return sorted(({"project": k, **_cstats(v)} for k, v in pj.items()), key=lambda r: -r["union_min"])[:15]
+
+
+def rollup_by_day(calls: list[dict]) -> list[dict]:
+    """The `prompt_wait_by_day` section: human waits per UTC day (%Y-%m-%d), top 10 by descending union_min."""
+    day = defaultdict(list)
+    for c in _human(calls):
+        day[datetime.fromtimestamp(c["epoch"], timezone.utc).strftime("%Y-%m-%d")].append(c)
+    return sorted(({"day": k, **_cstats(v)} for k, v in day.items()), key=lambda r: -r["union_min"])[:10]
+
+
+def rollup_approvals(calls: list[dict], top: int) -> dict:
+    """The `approved_prompts` section: the prompts you actually said yes to, grouped by shape. Ground truth from
+    the prompt-log hook (prompted) minus the ones the transcript marks user_rejected -- the real allow-list
+    triage input that the rule-based estimate (cua scan's estimated_prompts_by_rule) cannot produce.
+    Rows sort by (-approved, label)."""
+    dlg = _dialogs(calls)
+    appr = [c for c in dlg if not c["denial"]]
+    rej = [c for c in dlg if c["denial"] == "user_rejected"]
+    ab = defaultdict(list)
+    for c in appr:
+        ab[c["label"]].append(c)
+    arows = []
+    for k, v in ab.items():
+        rk = rule_key(v[0]["_tc"])
+        arows.append({"label": k, "rule": rk, "risk": tool_risk(rk), "approved": len(v),
+                      "sessions": len({c["session"] for c in v}),
+                      "subagent_share": round(sum(not c["main"] for c in v) / len(v), 2),
+                      "example": v[0]["head"]})
+    return {
+        "total_approved": len(appr), "total_rejected": len(rej),
+        "note": "dialogs you approved (a logged prompt that was not user_rejected), by shape; measured "
+                "from the --prompt-log hook, not inferred. Empty when no prompt log is supplied.",
+        "by_label": sorted(arows, key=lambda r: (-r["approved"], r["label"]))[:top],
+    }
+
+
+def rollup_modes(calls: list[dict]) -> dict:
+    """The `by_mode` and `before_after_mode_split` sections, in that key order."""
+    pr = _prompted(calls)
+    out: dict = {"by_mode": {m: _dialog_summary([c for c in pr if c["mode"] == m]) for m in sorted({c["mode"] for c in pr})}}
+    # Unprompted calls carry no mode, so only the time split has a call count to rate against.
+    split = MODE_SPLIT.timestamp()
+    out["before_after_mode_split"] = {"split_at": MODE_SPLIT.isoformat()}
+    for name, cs in (("before", [c for c in calls if c["epoch"] < split]), ("after", [c for c in calls if c["epoch"] >= split])):
+        p = [c for c in cs if c["prompted"]]
+        out["before_after_mode_split"][name] = {
+            **_dialog_summary(p, len(cs)),
+            "by_mode": {m: _dialog_summary([c for c in p if c["mode"] == m]) for m in sorted({c["mode"] for c in p})}}
+    return out
+
+
+def rollup_pauses(calls: list[dict], top: int) -> dict:
+    """The pauses that are NOT permission dialogs: `question_wait`, `async_calls`, `slow_tools_not_prompts`,
+    `tool_latency_by_tool` and `fast_error_calls`, in that key order."""
+    out: dict = {}
+    q = [c for c in calls if c["tool"] == "AskUserQuestion"]  # prompted or not: it is a question either way
+    out["question_wait"] = _cstats(q)
+    out["question_wait"]["by_project"] = [{"project": k, **_cstats([c for c in q if c["tail"] == k])}
+                                          for k in sorted({c["tail"] for c in q},
+                                                          key=lambda k: -sum(min(c["lat"], IDLE_CAP_S) for c in q if c["tail"] == k))[:8]]
+    out["async_calls"] = {lab: _cstats(v) for lab, v in sorted(
+        ((lab, [c for c in calls if c["async"] and c["label"] == lab]) for lab in {c["label"] for c in calls if c["async"]}),
+        key=lambda kv: -len(kv[1]))}
+    np_calls = [c for c in calls if not c["prompted"] and not c["async"] and c["tool"] != "AskUserQuestion"]
+    sl = defaultdict(list)
+    for c in np_calls:
+        if c["lat"] >= SLOW_S:
+            sl[c["label"]].append(c)
+    out["slow_tools_not_prompts"] = sorted(
+        ({"label": k, **_cstats(v), "subagent_share": round(sum(not c["main"] for c in v) / len(v), 2),
+          "example": v[0]["head"]} for k, v in sl.items()), key=lambda r: -r["union_min"])[:top]
+    fast_err = [c for c in np_calls if c["err"] and c["lat"] < 5]
+    out["tool_latency_by_tool"] = sorted(
+        ({"tool": k, **_cstats([c for c in np_calls if c["tool"] == k])} for k in {c["tool"] for c in np_calls}),
+        key=lambda r: -r["union_min"])[:15]
+    out["fast_error_calls"] = len(fast_err)
+    return out
+
+
+def rollup_gaps(sessions) -> dict:
+    """The `user_gap_buckets`, `user_gap_live` and `user_gap_by_last_tool` sections: time the session waited for
+    the human to type. Takes sessions, not calls, because gaps come from turns."""
+    gaps = []
+    for s in sessions:
+        turns = sorted(s.turns, key=lambda t: t.ts.timestamp() if t.ts else 0)
+        for a, b in zip(turns, turns[1:]):
+            end = a.end_ts or a.ts
+            if not (end and b.ts) or b.kind == "continuation":
+                continue
+            g = (b.ts - end).total_seconds()
+            if g < 0:
+                continue
+            last = a.tool_calls[-1].name if a.tool_calls else None
+            gaps.append({"g": g, "last_tool": last, "interrupted": a.interrupted, "kind": b.kind,
+                         "tail": _tail(s.project), "prompt_len": len(b.prompt),
+                         "short": len(b.prompt.strip()) <= 25})
+    buckets = [("<30s", 0, 30), ("30s-2m", 30, 120), ("2-10m", 120, 600), ("10-30m", 600, 1800), (">30m (away)", 1800, 1e12)]
+    out: dict = {}
+    out["user_gap_buckets"] = [{"bucket": n, "n": sum(lo <= x["g"] < hi for x in gaps),
+                                "total_min": round(sum(x["g"] for x in gaps if lo <= x["g"] < hi) / 60, 1)}
+                               for n, lo, hi in buckets]
+    live = [x for x in gaps if x["g"] < IDLE_CAP_S]
+    out["user_gap_live"] = {**_stats([x["g"] for x in live]),
+                            "after_interrupt": sum(x["interrupted"] for x in live),
+                            "next_prompt_short_le25ch": sum(x["short"] for x in live),
+                            "next_prompt_is_command": sum(x["kind"] == "command" for x in live)}
+    by_last = defaultdict(list)
+    for x in live:
+        by_last[x["last_tool"] or "(no tools)"].append(x["g"])
+    out["user_gap_by_last_tool"] = sorted(({"last_tool": k, **_stats(v)} for k, v in by_last.items()),
+                                          key=lambda r: -r["total_min"])[:10]
+    return out
+
+
+def calls_detail(calls: list[dict]) -> list[dict]:
+    """The `_calls` section: per-call detail for dialogs, slow calls and questions, sorted by epoch (a sorted
+    copy; `calls` itself keeps its order)."""
+    return [{k: (round(c[k], 1) if k == "lat" else c[k]) for k in
+             ("session", "tool", "label", "lat", "tail", "main", "mode", "denial", "head", "epoch", "match",
+              "group", "async", "turn_cmd", "workflow", "agent_type")}
+            | c["extra"] | {"prompted": c["prompted"],
+                            "why": why_prompted(c["_tc"], c["_cfg"]) if c["prompted"] else {}}
+            for c in sorted(calls, key=lambda c: c["epoch"])
+            if c["prompted"] or c["lat"] >= SLOW_S or c["tool"] == "AskUserQuestion"]
+
+
+def rollup_background_style(calls: list[dict]) -> dict:
+    """The `background_style` section: wait stats for the polling and background-work labels that occur."""
+    return {lab: _cstats([c for c in calls if c["label"] == lab])
+            for lab in ("Bash: sleep", "Monitor", "ScheduleWakeup", "TaskOutput", "Agent: general-purpose")
+            if any(c["label"] == lab for c in calls)}
+
+
+def _collect_calls(sessions, perm_for_session=None) -> list[dict]:
+    """One dict per tool call that has a latency (tool_use and tool_result both timestamped): each session's
+    main-thread calls, then its subagent calls. Never re-sort the result; tie order and `example` depend on it."""
     calls = []
     for s in sessions:
         tail = _tail(s.project)
@@ -336,148 +641,54 @@ def analyse(sessions, log_path: str = LOG_DEFAULT, since: datetime | None = None
                           "_tc": c, "_cfg": cfg,
                           "head": redact((c.input or {}).get("command") or (c.input or {}).get("file_path") or "", 300),
                           "extra": web_extra(c.name, c.input)})
-    tails = {c["tail"] for c in calls}
-    sids = {c["session"] for c in calls}
-    log = [r for r in load_prompt_log(log_path, since)
-           if r["project"] in tails or (r["session"] and r["session"] in sids)]  # the log covers both accounts
+    return calls
+
+
+def _load_and_join(calls: list[dict], sessions, log_path: str, since: datetime | None) -> tuple[list, dict, dict]:
+    """Read the prompt log, keep the rows of the selected sessions, join them to `calls` (sets prompted, mode and
+    match) and classify the dialogs (sets group). Returns (kept log rows, match counts, prompt_log stats)."""
+    # the log covers both accounts: keep rows of the selected sessions. The sets come from the sessions, not from
+    # calls with latency, so a selected session whose calls all lack result_ts still claims its rows.
+    tails = {_tail(s.project) for s in sessions}
+    sids = {s.id for s in sessions}
+    pl = new_prompt_log_stats()
+    log = []
+    for r in load_prompt_log(log_path, since, pl):
+        if r["project"] in tails or (r["session"] and r["session"] in sids):
+            log.append(r)
+        else:
+            pl["excluded_other_account"] += 1
+    pl["kept"] = len(log)
     mstats = match_prompts(calls, log)
     classify_dialogs(calls)
+    return log, mstats, pl
 
-    out: dict = {"meta": {"calls_with_latency": len(calls), "logged_prompts": len(log),
+
+def analyse(sessions, log_path: str = LOG_DEFAULT, since: datetime | None = None, top: int = 25,
+            perm_for_session=None) -> dict:
+    """Build waits.json: collect the calls, join them to the prompt log, then one rollup per section. The top-level
+    key order is part of the output (waits.json is written without sort_keys)."""
+    calls = _collect_calls(sessions, perm_for_session)
+    log, mstats, pl = _load_and_join(calls, sessions, log_path, since)
+
+    out: dict = {"meta": {"calls_with_latency": len(calls), "logged_prompts": len(log), "prompt_log": pl,
                           "log_prompts_matched": sum(c["prompted"] for c in calls), "matched_by": mstats,
                           "join_window_s": JOIN_WINDOW_S, "slow_threshold_s": SLOW_S,
                           "thresholds": {"auto_lt_s": AUTO_S, "human_ge_s": HUMAN_S, "burst_dialogs_per_min": BURST_PER_MIN,
                                          "wait_cap_s": IDLE_CAP_S, "mode_split": MODE_SPLIT.isoformat()},
                           "note": "human minutes are the union of wait intervals per session; label/project figures are unions within the group"}}
-
-    # --- A. permission dialogs: how long the human took, and which shapes cost the most ---
-    pr = [c for c in calls if c["prompted"]]
-    dlg = [c for c in pr if c["group"] not in ("question", "async")]
-    human = [c for c in dlg if c["group"] == "human"]
-    out["prompt_wait"] = {
-        "dialogs": len(dlg),
-        "groups": {g: sum(c["group"] == g for c in pr) for g in ("lt2s", "mid", "human", "burst", "question", "async")},
-        "human": _cstats(human),
-        "human_main_thread": _cstats([c for c in human if c["main"]]),
-        "human_subagent": _cstats([c for c in human if not c["main"]]),
-        "burst": _cstats([c for c in dlg if c["group"] == "burst"]),
-        "lt2s": _cstats([c for c in dlg if c["group"] == "lt2s"]),
-        "human_gt_60s": sum(c["lat"] > 60 for c in human), "human_gt_600s": sum(c["lat"] > 600 for c in human),
-    }
-    out["by_mode"] = {m: _dialog_summary([c for c in pr if c["mode"] == m]) for m in sorted({c["mode"] for c in pr})}
-    # Unprompted calls carry no mode, so only the time split has a call count to rate against.
-    split = MODE_SPLIT.timestamp()
-    out["before_after_mode_split"] = {"split_at": MODE_SPLIT.isoformat()}
-    for name, cs in (("before", [c for c in calls if c["epoch"] < split]), ("after", [c for c in calls if c["epoch"] >= split])):
-        p = [c for c in cs if c["prompted"]]
-        out["before_after_mode_split"][name] = {
-            **_dialog_summary(p, len(cs)),
-            "by_mode": {m: _dialog_summary([c for c in p if c["mode"] == m]) for m in sorted({c["mode"] for c in p})}}
-
-    by = defaultdict(list)
-    for c in human:
-        by[c["label"]].append(c)
-    rows = []
-    for k, v in by.items():
-        st = _cstats(v)
-        st.update(label=k, subagent_share=round(sum(not c["main"] for c in v) / len(v), 2),
-                  denied=sum(1 for c in v if c["denial"]), example=v[0]["head"])
-        rows.append(st)
-    out["prompt_wait_by_label"] = sorted(rows, key=lambda r: -r["union_min"])[:top]
-    pj = defaultdict(list)
-    for c in human:
-        pj[c["tail"]].append(c)
-    out["prompt_wait_by_project"] = sorted(({"project": k, **_cstats(v)} for k, v in pj.items()),
-                                           key=lambda r: -r["union_min"])[:15]
-    day = defaultdict(list)
-    for c in human:
-        day[datetime.fromtimestamp(c["epoch"], timezone.utc).strftime("%Y-%m-%d")].append(c)
-    out["prompt_wait_by_day"] = sorted(({"day": k, **_cstats(v)} for k, v in day.items()),
-                                       key=lambda r: -r["union_min"])[:10]
-
-    # approved dialogs: the prompts you actually said yes to, grouped by shape. Ground truth from the
-    # prompt-log hook (prompted) minus the ones the transcript marks user_rejected -- the real allow-list
-    # triage input that the rule-based estimate (cua scan's estimated_prompts_by_rule) cannot produce.
-    appr = [c for c in dlg if not c["denial"]]
-    rej = [c for c in dlg if c["denial"] == "user_rejected"]
-    ab = defaultdict(list)
-    for c in appr:
-        ab[c["label"]].append(c)
-    arows = []
-    for k, v in ab.items():
-        rk = rule_key(v[0]["_tc"])
-        arows.append({"label": k, "rule": rk, "risk": tool_risk(rk), "approved": len(v),
-                      "sessions": len({c["session"] for c in v}),
-                      "subagent_share": round(sum(not c["main"] for c in v) / len(v), 2),
-                      "example": v[0]["head"]})
-    out["approved_prompts"] = {
-        "total_approved": len(appr), "total_rejected": len(rej),
-        "note": "dialogs you approved (a logged prompt that was not user_rejected), by shape; measured "
-                "from the --prompt-log hook, not inferred. Empty when no prompt log is supplied.",
-        "by_label": sorted(arows, key=lambda r: (-r["approved"], r["label"]))[:top],
-    }
-
-    # --- B. pauses that are NOT permission dialogs ---
-    q = [c for c in calls if c["tool"] == "AskUserQuestion"]  # prompted or not: it is a question either way
-    out["question_wait"] = _cstats(q)
-    out["question_wait"]["by_project"] = [{"project": k, **_cstats([c for c in q if c["tail"] == k])}
-                                          for k in sorted({c["tail"] for c in q},
-                                                          key=lambda k: -sum(min(c["lat"], IDLE_CAP_S) for c in q if c["tail"] == k))[:8]]
-    out["async_calls"] = {lab: _cstats(v) for lab, v in sorted(
-        ((lab, [c for c in calls if c["async"] and c["label"] == lab]) for lab in {c["label"] for c in calls if c["async"]}),
-        key=lambda kv: -len(kv[1]))}
-    np_calls = [c for c in calls if not c["prompted"] and not c["async"] and c["tool"] != "AskUserQuestion"]
-    sl = defaultdict(list)
-    for c in np_calls:
-        if c["lat"] >= SLOW_S:
-            sl[c["label"]].append(c)
-    out["slow_tools_not_prompts"] = sorted(
-        ({"label": k, **_cstats(v), "subagent_share": round(sum(not c["main"] for c in v) / len(v), 2),
-          "example": v[0]["head"]} for k, v in sl.items()), key=lambda r: -r["union_min"])[:top]
-    fast_err = [c for c in np_calls if c["err"] and c["lat"] < 5]
-    out["tool_latency_by_tool"] = sorted(
-        ({"tool": k, **_cstats([c for c in np_calls if c["tool"] == k])} for k in {c["tool"] for c in np_calls}),
-        key=lambda r: -r["union_min"])[:15]
-    out["fast_error_calls"] = len(fast_err)
-
-    # --- C. gaps waiting for the human to type ---
-    gaps, ask_follow = [], 0
-    for s in sessions:
-        turns = sorted(s.turns, key=lambda t: t.ts.timestamp() if t.ts else 0)
-        for a, b in zip(turns, turns[1:]):
-            end = a.end_ts or a.ts
-            if not (end and b.ts) or b.kind == "continuation":
-                continue
-            g = (b.ts - end).total_seconds()
-            if g < 0:
-                continue
-            last = a.tool_calls[-1].name if a.tool_calls else None
-            gaps.append({"g": g, "last_tool": last, "interrupted": a.interrupted, "kind": b.kind,
-                         "tail": _tail(s.project), "prompt_len": len(b.prompt),
-                         "short": len(b.prompt.strip()) <= 25})
-    buckets = [("<30s", 0, 30), ("30s-2m", 30, 120), ("2-10m", 120, 600), ("10-30m", 600, 1800), (">30m (away)", 1800, 1e12)]
-    out["user_gap_buckets"] = [{"bucket": n, "n": sum(lo <= x["g"] < hi for x in gaps),
-                                "total_min": round(sum(x["g"] for x in gaps if lo <= x["g"] < hi) / 60, 1)}
-                               for n, lo, hi in buckets]
-    live = [x for x in gaps if x["g"] < IDLE_CAP_S]
-    out["user_gap_live"] = {**_stats([x["g"] for x in live]),
-                            "after_interrupt": sum(x["interrupted"] for x in live),
-                            "next_prompt_short_le25ch": sum(x["short"] for x in live),
-                            "next_prompt_is_command": sum(x["kind"] == "command" for x in live)}
-    by_last = defaultdict(list)
-    for x in live:
-        by_last[x["last_tool"] or "(no tools)"].append(x["g"])
-    out["user_gap_by_last_tool"] = sorted(({"last_tool": k, **_stats(v)} for k, v in by_last.items()),
-                                          key=lambda r: -r["total_min"])[:10]
-    # --- D. per-call detail (dialogs and slow calls) ---
-    out["_calls"] = [{k: (round(c[k], 1) if k == "lat" else c[k]) for k in
-                      ("session", "tool", "label", "lat", "tail", "main", "mode", "denial", "head", "epoch", "match",
-                       "group", "async", "turn_cmd", "workflow", "agent_type")}
-                     | c["extra"] | {"prompted": c["prompted"],
-                                     "why": why_prompted(c["_tc"], c["_cfg"]) if c["prompted"] else {}}
-                     for c in sorted(calls, key=lambda c: c["epoch"])
-                     if c["prompted"] or c["lat"] >= SLOW_S or c["tool"] == "AskUserQuestion"]
-    out["background_style"] = {lab: _cstats([c for c in calls if c["label"] == lab])
-                               for lab in ("Bash: sleep", "Monitor", "ScheduleWakeup", "TaskOutput", "Agent: general-purpose")
-                               if any(c["label"] == lab for c in calls)}
+    # A. permission dialogs: how long the human took, and which shapes cost the most
+    out["prompt_wait"] = rollup_dialog_groups(calls)
+    out.update(rollup_modes(calls))
+    out["prompt_wait_by_label"] = rollup_by_label(calls, top)
+    out["prompt_wait_by_project"] = rollup_by_project(calls)
+    out["prompt_wait_by_day"] = rollup_by_day(calls)
+    out["approved_prompts"] = rollup_approvals(calls, top)
+    # B. pauses that are NOT permission dialogs
+    out.update(rollup_pauses(calls, top))
+    # C. gaps waiting for the human to type
+    out.update(rollup_gaps(sessions))
+    # D. per-call detail (dialogs and slow calls), then the polling style
+    out["_calls"] = calls_detail(calls)
+    out["background_style"] = rollup_background_style(calls)
     return out

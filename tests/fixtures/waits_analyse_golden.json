@@ -1,0 +1,1582 @@
+{
+ "key_order": [
+  "meta",
+  "prompt_wait",
+  "by_mode",
+  "before_after_mode_split",
+  "prompt_wait_by_label",
+  "prompt_wait_by_project",
+  "prompt_wait_by_day",
+  "approved_prompts",
+  "question_wait",
+  "async_calls",
+  "slow_tools_not_prompts",
+  "tool_latency_by_tool",
+  "fast_error_calls",
+  "user_gap_buckets",
+  "user_gap_live",
+  "user_gap_by_last_tool",
+  "_calls",
+  "background_style"
+ ],
+ "meta_key_order": [
+  "calls_with_latency",
+  "logged_prompts",
+  "prompt_log",
+  "log_prompts_matched",
+  "matched_by",
+  "join_window_s",
+  "slow_threshold_s",
+  "thresholds",
+  "note"
+ ],
+ "result": {
+  "_calls": [
+   {
+    "agent_type": "(main)",
+    "async": false,
+    "denial": null,
+    "epoch": 1793527200.0,
+    "group": "human",
+    "head": "pnpm test",
+    "label": "Bash: pnpm test",
+    "lat": 40.0,
+    "main": true,
+    "match": "hash",
+    "mode": "default",
+    "prompted": true,
+    "session": "sA",
+    "tail": "work/proj",
+    "tool": "Bash",
+    "turn_cmd": null,
+    "why": {
+     "ask_hit": [],
+     "cfg_mode": null,
+     "est_prompt": true,
+     "n_segs": 1,
+     "unmatched_segs": [
+      "pnpm test"
+     ]
+    },
+    "workflow": null
+   },
+   {
+    "agent_type": "gsd-executor",
+    "async": false,
+    "denial": null,
+    "epoch": 1793527220.0,
+    "group": "human",
+    "head": "pnpm test",
+    "label": "Bash: pnpm test",
+    "lat": 30.0,
+    "main": false,
+    "match": "hash",
+    "mode": "default",
+    "prompted": true,
+    "session": "sA",
+    "tail": "work/proj",
+    "tool": "Bash",
+    "turn_cmd": null,
+    "why": {
+     "ask_hit": [],
+     "cfg_mode": null,
+     "est_prompt": true,
+     "n_segs": 1,
+     "unmatched_segs": [
+      "pnpm test"
+     ]
+    },
+    "workflow": null
+   },
+   {
+    "agent_type": "(main)",
+    "async": false,
+    "denial": "user_rejected",
+    "epoch": 1793527300.0,
+    "group": "human",
+    "head": "git push origin main",
+    "label": "Bash: git push",
+    "lat": 20.0,
+    "main": true,
+    "match": "session",
+    "mode": "default",
+    "prompted": true,
+    "session": "sA",
+    "tail": "work/proj",
+    "tool": "Bash",
+    "turn_cmd": null,
+    "why": {
+     "ask_hit": [],
+     "cfg_mode": null,
+     "est_prompt": true,
+     "n_segs": 1,
+     "unmatched_segs": [
+      "git push origin main"
+     ]
+    },
+    "workflow": null
+   },
+   {
+    "agent_type": "(main)",
+    "async": false,
+    "denial": null,
+    "epoch": 1793527400.0,
+    "group": "human",
+    "head": "pnpm test",
+    "label": "Bash: pnpm test",
+    "lat": 60.0,
+    "main": true,
+    "match": "guess",
+    "mode": "acceptEdits",
+    "prompted": true,
+    "session": "sA",
+    "tail": "work/proj",
+    "tool": "Bash",
+    "turn_cmd": null,
+    "why": {
+     "ask_hit": [],
+     "cfg_mode": null,
+     "est_prompt": true,
+     "n_segs": 1,
+     "unmatched_segs": [
+      "pnpm test"
+     ]
+    },
+    "workflow": null
+   },
+   {
+    "agent_type": "(main)",
+    "async": false,
+    "denial": null,
+    "epoch": 1793527500.0,
+    "group": "lt2s",
+    "head": "~/code/work/proj/README.md",
+    "label": "Read",
+    "lat": 1.0,
+    "main": true,
+    "match": "guess",
+    "mode": "plan",
+    "prompted": true,
+    "session": "sA",
+    "tail": "work/proj",
+    "tool": "Read",
+    "turn_cmd": null,
+    "why": {
+     "allow_hit": [],
+     "ask_hit": [],
+     "cfg_mode": null,
+     "est_prompt": false
+    },
+    "workflow": null
+   },
+   {
+    "agent_type": "(main)",
+    "async": false,
+    "denial": null,
+    "epoch": 1793527510.0,
+    "group": "mid",
+    "head": "~/code/work/proj/notes.txt",
+    "label": "Read",
+    "lat": 3.0,
+    "main": true,
+    "match": "id",
+    "mode": "plan",
+    "prompted": true,
+    "session": "sA",
+    "tail": "work/proj",
+    "tool": "Read",
+    "turn_cmd": null,
+    "why": {
+     "allow_hit": [],
+     "ask_hit": [],
+     "cfg_mode": null,
+     "est_prompt": false
+    },
+    "workflow": null
+   },
+   {
+    "agent_type": "(main)",
+    "async": false,
+    "denial": null,
+    "epoch": 1793527520.0,
+    "group": "question",
+    "head": "",
+    "label": "AskUserQuestion",
+    "lat": 90.0,
+    "main": true,
+    "match": "session",
+    "mode": "default",
+    "prompted": true,
+    "q_confirm": true,
+    "q_multi": false,
+    "q_n": 1,
+    "q_opts_max": 2,
+    "session": "sA",
+    "tail": "work/proj",
+    "tool": "AskUserQuestion",
+    "turn_cmd": null,
+    "why": {
+     "allow_hit": [],
+     "ask_hit": [],
+     "cfg_mode": null,
+     "est_prompt": false
+    },
+    "workflow": null
+   },
+   {
+    "agent_type": "(main)",
+    "async": true,
+    "denial": null,
+    "epoch": 1793527530.0,
+    "group": "async",
+    "head": "tail -f build.log",
+    "label": "Monitor",
+    "lat": 500.0,
+    "main": true,
+    "match": "session",
+    "mode": "default",
+    "prompted": true,
+    "session": "sA",
+    "tail": "work/proj",
+    "tool": "Monitor",
+    "turn_cmd": null,
+    "why": {
+     "allow_hit": [],
+     "ask_hit": [],
+     "cfg_mode": null,
+     "est_prompt": true
+    },
+    "workflow": null
+   },
+   {
+    "agent_type": "(main)",
+    "async": true,
+    "denial": null,
+    "epoch": 1793527540.0,
+    "group": null,
+    "head": "make build",
+    "label": "Bash: make build",
+    "lat": 60.0,
+    "main": true,
+    "match": null,
+    "mode": null,
+    "prompted": false,
+    "session": "sA",
+    "tail": "work/proj",
+    "tool": "Bash",
+    "turn_cmd": null,
+    "why": {},
+    "workflow": null
+   },
+   {
+    "agent_type": "(main)",
+    "async": false,
+    "denial": null,
+    "epoch": 1793527600.0,
+    "group": null,
+    "head": "cargo build",
+    "label": "Bash: cargo build",
+    "lat": 45.0,
+    "main": true,
+    "match": null,
+    "mode": null,
+    "prompted": false,
+    "session": "sA",
+    "tail": "work/proj",
+    "tool": "Bash",
+    "turn_cmd": null,
+    "why": {},
+    "workflow": null
+   },
+   {
+    "agent_type": "(main)",
+    "async": false,
+    "denial": null,
+    "epoch": 1793527650.0,
+    "group": "human",
+    "head": "caf\u00e9",
+    "label": "Bash: caf\u00e9",
+    "lat": 35.0,
+    "main": true,
+    "match": "guess",
+    "mode": "acceptEdits",
+    "prompted": true,
+    "session": "sA",
+    "tail": "work/proj",
+    "tool": "Bash",
+    "turn_cmd": null,
+    "why": {
+     "ask_hit": [],
+     "cfg_mode": null,
+     "est_prompt": true,
+     "n_segs": 1,
+     "unmatched_segs": [
+      "caf\u00e9"
+     ]
+    },
+    "workflow": null
+   },
+   {
+    "agent_type": "gsd-executor",
+    "async": false,
+    "denial": null,
+    "epoch": 1793847600.0,
+    "group": "burst",
+    "head": "~/code/work/other/f0.txt",
+    "label": "Read",
+    "lat": 8.0,
+    "main": false,
+    "match": "session",
+    "mode": "default",
+    "prompted": true,
+    "session": "sB",
+    "tail": "work/other",
+    "tool": "Read",
+    "turn_cmd": null,
+    "why": {
+     "allow_hit": [],
+     "ask_hit": [],
+     "cfg_mode": null,
+     "est_prompt": false
+    },
+    "workflow": null
+   },
+   {
+    "agent_type": "gsd-executor",
+    "async": false,
+    "denial": null,
+    "epoch": 1793847601.0,
+    "group": "burst",
+    "head": "~/code/work/other/f1.txt",
+    "label": "Read",
+    "lat": 8.0,
+    "main": false,
+    "match": "session",
+    "mode": "default",
+    "prompted": true,
+    "session": "sB",
+    "tail": "work/other",
+    "tool": "Read",
+    "turn_cmd": null,
+    "why": {
+     "allow_hit": [],
+     "ask_hit": [],
+     "cfg_mode": null,
+     "est_prompt": false
+    },
+    "workflow": null
+   },
+   {
+    "agent_type": "gsd-executor",
+    "async": false,
+    "denial": null,
+    "epoch": 1793847602.0,
+    "group": "burst",
+    "head": "~/code/work/other/f2.txt",
+    "label": "Read",
+    "lat": 8.0,
+    "main": false,
+    "match": "session",
+    "mode": "default",
+    "prompted": true,
+    "session": "sB",
+    "tail": "work/other",
+    "tool": "Read",
+    "turn_cmd": null,
+    "why": {
+     "allow_hit": [],
+     "ask_hit": [],
+     "cfg_mode": null,
+     "est_prompt": false
+    },
+    "workflow": null
+   },
+   {
+    "agent_type": "gsd-executor",
+    "async": false,
+    "denial": null,
+    "epoch": 1793847603.0,
+    "group": "burst",
+    "head": "~/code/work/other/f3.txt",
+    "label": "Read",
+    "lat": 8.0,
+    "main": false,
+    "match": "session",
+    "mode": "default",
+    "prompted": true,
+    "session": "sB",
+    "tail": "work/other",
+    "tool": "Read",
+    "turn_cmd": null,
+    "why": {
+     "allow_hit": [],
+     "ask_hit": [],
+     "cfg_mode": null,
+     "est_prompt": false
+    },
+    "workflow": null
+   },
+   {
+    "agent_type": "gsd-executor",
+    "async": false,
+    "denial": null,
+    "epoch": 1793847604.0,
+    "group": "burst",
+    "head": "~/code/work/other/f4.txt",
+    "label": "Read",
+    "lat": 8.0,
+    "main": false,
+    "match": "session",
+    "mode": "default",
+    "prompted": true,
+    "session": "sB",
+    "tail": "work/other",
+    "tool": "Read",
+    "turn_cmd": null,
+    "why": {
+     "allow_hit": [],
+     "ask_hit": [],
+     "cfg_mode": null,
+     "est_prompt": false
+    },
+    "workflow": null
+   },
+   {
+    "agent_type": "gsd-executor",
+    "async": false,
+    "denial": null,
+    "epoch": 1793847605.0,
+    "group": "burst",
+    "head": "~/code/work/other/f5.txt",
+    "label": "Read",
+    "lat": 8.0,
+    "main": false,
+    "match": "session",
+    "mode": "default",
+    "prompted": true,
+    "session": "sB",
+    "tail": "work/other",
+    "tool": "Read",
+    "turn_cmd": null,
+    "why": {
+     "allow_hit": [],
+     "ask_hit": [],
+     "cfg_mode": null,
+     "est_prompt": false
+    },
+    "workflow": null
+   },
+   {
+    "agent_type": "gsd-executor",
+    "async": false,
+    "denial": null,
+    "epoch": 1793847606.0,
+    "group": "burst",
+    "head": "~/code/work/other/f6.txt",
+    "label": "Read",
+    "lat": 8.0,
+    "main": false,
+    "match": "session",
+    "mode": "default",
+    "prompted": true,
+    "session": "sB",
+    "tail": "work/other",
+    "tool": "Read",
+    "turn_cmd": null,
+    "why": {
+     "allow_hit": [],
+     "ask_hit": [],
+     "cfg_mode": null,
+     "est_prompt": false
+    },
+    "workflow": null
+   },
+   {
+    "agent_type": "gsd-executor",
+    "async": false,
+    "denial": null,
+    "epoch": 1793847607.0,
+    "group": "burst",
+    "head": "~/code/work/other/f7.txt",
+    "label": "Read",
+    "lat": 8.0,
+    "main": false,
+    "match": "session",
+    "mode": "default",
+    "prompted": true,
+    "session": "sB",
+    "tail": "work/other",
+    "tool": "Read",
+    "turn_cmd": null,
+    "why": {
+     "allow_hit": [],
+     "ask_hit": [],
+     "cfg_mode": null,
+     "est_prompt": false
+    },
+    "workflow": null
+   },
+   {
+    "agent_type": "gsd-executor",
+    "async": false,
+    "denial": null,
+    "epoch": 1793847608.0,
+    "group": "burst",
+    "head": "~/code/work/other/f8.txt",
+    "label": "Read",
+    "lat": 8.0,
+    "main": false,
+    "match": "session",
+    "mode": "default",
+    "prompted": true,
+    "session": "sB",
+    "tail": "work/other",
+    "tool": "Read",
+    "turn_cmd": null,
+    "why": {
+     "allow_hit": [],
+     "ask_hit": [],
+     "cfg_mode": null,
+     "est_prompt": false
+    },
+    "workflow": null
+   },
+   {
+    "agent_type": "gsd-executor",
+    "async": false,
+    "denial": null,
+    "epoch": 1793847609.0,
+    "group": "burst",
+    "head": "~/code/work/other/f9.txt",
+    "label": "Read",
+    "lat": 8.0,
+    "main": false,
+    "match": "session",
+    "mode": "default",
+    "prompted": true,
+    "session": "sB",
+    "tail": "work/other",
+    "tool": "Read",
+    "turn_cmd": null,
+    "why": {
+     "allow_hit": [],
+     "ask_hit": [],
+     "cfg_mode": null,
+     "est_prompt": false
+    },
+    "workflow": null
+   },
+   {
+    "agent_type": "gsd-executor",
+    "async": false,
+    "denial": null,
+    "epoch": 1793847610.0,
+    "group": "burst",
+    "head": "~/code/work/other/f10.txt",
+    "label": "Read",
+    "lat": 8.0,
+    "main": false,
+    "match": "session",
+    "mode": "default",
+    "prompted": true,
+    "session": "sB",
+    "tail": "work/other",
+    "tool": "Read",
+    "turn_cmd": null,
+    "why": {
+     "allow_hit": [],
+     "ask_hit": [],
+     "cfg_mode": null,
+     "est_prompt": false
+    },
+    "workflow": null
+   },
+   {
+    "agent_type": "gsd-executor",
+    "async": false,
+    "denial": null,
+    "epoch": 1793847611.0,
+    "group": "burst",
+    "head": "~/code/work/other/f11.txt",
+    "label": "Read",
+    "lat": 8.0,
+    "main": false,
+    "match": "session",
+    "mode": "default",
+    "prompted": true,
+    "session": "sB",
+    "tail": "work/other",
+    "tool": "Read",
+    "turn_cmd": null,
+    "why": {
+     "allow_hit": [],
+     "ask_hit": [],
+     "cfg_mode": null,
+     "est_prompt": false
+    },
+    "workflow": null
+   },
+   {
+    "agent_type": "gsd-executor",
+    "async": false,
+    "denial": null,
+    "epoch": 1793847612.0,
+    "group": "burst",
+    "head": "~/code/work/other/f12.txt",
+    "label": "Read",
+    "lat": 8.0,
+    "main": false,
+    "match": "session",
+    "mode": "default",
+    "prompted": true,
+    "session": "sB",
+    "tail": "work/other",
+    "tool": "Read",
+    "turn_cmd": null,
+    "why": {
+     "allow_hit": [],
+     "ask_hit": [],
+     "cfg_mode": null,
+     "est_prompt": false
+    },
+    "workflow": null
+   },
+   {
+    "agent_type": "gsd-executor",
+    "async": false,
+    "denial": null,
+    "epoch": 1793847613.0,
+    "group": "burst",
+    "head": "~/code/work/other/f13.txt",
+    "label": "Read",
+    "lat": 8.0,
+    "main": false,
+    "match": "session",
+    "mode": "default",
+    "prompted": true,
+    "session": "sB",
+    "tail": "work/other",
+    "tool": "Read",
+    "turn_cmd": null,
+    "why": {
+     "allow_hit": [],
+     "ask_hit": [],
+     "cfg_mode": null,
+     "est_prompt": false
+    },
+    "workflow": null
+   },
+   {
+    "agent_type": "gsd-executor",
+    "async": false,
+    "denial": null,
+    "epoch": 1793847614.0,
+    "group": "burst",
+    "head": "~/code/work/other/f14.txt",
+    "label": "Read",
+    "lat": 8.0,
+    "main": false,
+    "match": "session",
+    "mode": "default",
+    "prompted": true,
+    "session": "sB",
+    "tail": "work/other",
+    "tool": "Read",
+    "turn_cmd": null,
+    "why": {
+     "allow_hit": [],
+     "ask_hit": [],
+     "cfg_mode": null,
+     "est_prompt": false
+    },
+    "workflow": null
+   },
+   {
+    "agent_type": "gsd-executor",
+    "async": false,
+    "denial": null,
+    "epoch": 1793847615.0,
+    "group": "burst",
+    "head": "~/code/work/other/f15.txt",
+    "label": "Read",
+    "lat": 8.0,
+    "main": false,
+    "match": "session",
+    "mode": "default",
+    "prompted": true,
+    "session": "sB",
+    "tail": "work/other",
+    "tool": "Read",
+    "turn_cmd": null,
+    "why": {
+     "allow_hit": [],
+     "ask_hit": [],
+     "cfg_mode": null,
+     "est_prompt": false
+    },
+    "workflow": null
+   },
+   {
+    "agent_type": "gsd-executor",
+    "async": false,
+    "denial": null,
+    "epoch": 1793847616.0,
+    "group": "burst",
+    "head": "~/code/work/other/f16.txt",
+    "label": "Read",
+    "lat": 8.0,
+    "main": false,
+    "match": "session",
+    "mode": "default",
+    "prompted": true,
+    "session": "sB",
+    "tail": "work/other",
+    "tool": "Read",
+    "turn_cmd": null,
+    "why": {
+     "allow_hit": [],
+     "ask_hit": [],
+     "cfg_mode": null,
+     "est_prompt": false
+    },
+    "workflow": null
+   },
+   {
+    "agent_type": "gsd-executor",
+    "async": false,
+    "denial": null,
+    "epoch": 1793847617.0,
+    "group": "burst",
+    "head": "~/code/work/other/f17.txt",
+    "label": "Read",
+    "lat": 8.0,
+    "main": false,
+    "match": "session",
+    "mode": "default",
+    "prompted": true,
+    "session": "sB",
+    "tail": "work/other",
+    "tool": "Read",
+    "turn_cmd": null,
+    "why": {
+     "allow_hit": [],
+     "ask_hit": [],
+     "cfg_mode": null,
+     "est_prompt": false
+    },
+    "workflow": null
+   },
+   {
+    "agent_type": "gsd-executor",
+    "async": false,
+    "denial": null,
+    "epoch": 1793847618.0,
+    "group": "burst",
+    "head": "~/code/work/other/f18.txt",
+    "label": "Read",
+    "lat": 8.0,
+    "main": false,
+    "match": "session",
+    "mode": "default",
+    "prompted": true,
+    "session": "sB",
+    "tail": "work/other",
+    "tool": "Read",
+    "turn_cmd": null,
+    "why": {
+     "allow_hit": [],
+     "ask_hit": [],
+     "cfg_mode": null,
+     "est_prompt": false
+    },
+    "workflow": null
+   },
+   {
+    "agent_type": "gsd-executor",
+    "async": false,
+    "denial": null,
+    "epoch": 1793847619.0,
+    "group": "burst",
+    "head": "~/code/work/other/f19.txt",
+    "label": "Read",
+    "lat": 8.0,
+    "main": false,
+    "match": "session",
+    "mode": "default",
+    "prompted": true,
+    "session": "sB",
+    "tail": "work/other",
+    "tool": "Read",
+    "turn_cmd": null,
+    "why": {
+     "allow_hit": [],
+     "ask_hit": [],
+     "cfg_mode": null,
+     "est_prompt": false
+    },
+    "workflow": null
+   },
+   {
+    "agent_type": "gsd-executor",
+    "async": false,
+    "denial": null,
+    "epoch": 1793847620.0,
+    "group": "burst",
+    "head": "~/code/work/other/f20.txt",
+    "label": "Read",
+    "lat": 8.0,
+    "main": false,
+    "match": "session",
+    "mode": "default",
+    "prompted": true,
+    "session": "sB",
+    "tail": "work/other",
+    "tool": "Read",
+    "turn_cmd": null,
+    "why": {
+     "allow_hit": [],
+     "ask_hit": [],
+     "cfg_mode": null,
+     "est_prompt": false
+    },
+    "workflow": null
+   },
+   {
+    "agent_type": "gsd-executor",
+    "async": false,
+    "denial": null,
+    "epoch": 1793847621.0,
+    "group": "burst",
+    "head": "~/code/work/other/f21.txt",
+    "label": "Read",
+    "lat": 8.0,
+    "main": false,
+    "match": "session",
+    "mode": "default",
+    "prompted": true,
+    "session": "sB",
+    "tail": "work/other",
+    "tool": "Read",
+    "turn_cmd": null,
+    "why": {
+     "allow_hit": [],
+     "ask_hit": [],
+     "cfg_mode": null,
+     "est_prompt": false
+    },
+    "workflow": null
+   },
+   {
+    "agent_type": "(main)",
+    "async": false,
+    "denial": null,
+    "epoch": 1793847700.0,
+    "group": "human",
+    "head": "make",
+    "label": "Bash: make",
+    "lat": 50.0,
+    "main": true,
+    "match": "session",
+    "mode": "default",
+    "prompted": true,
+    "session": "sB",
+    "tail": "work/other",
+    "tool": "Bash",
+    "turn_cmd": null,
+    "why": {
+     "ask_hit": [],
+     "cfg_mode": null,
+     "est_prompt": true,
+     "n_segs": 1,
+     "unmatched_segs": [
+      "make"
+     ]
+    },
+    "workflow": null
+   },
+   {
+    "agent_type": "(main)",
+    "async": false,
+    "denial": null,
+    "epoch": 1793847800.0,
+    "group": "human",
+    "head": "cargo test",
+    "label": "Bash: cargo test",
+    "lat": 50.0,
+    "main": true,
+    "match": "guess",
+    "mode": "plan",
+    "prompted": true,
+    "session": "sB",
+    "tail": "work/other",
+    "tool": "Bash",
+    "turn_cmd": null,
+    "why": {
+     "ask_hit": [],
+     "cfg_mode": null,
+     "est_prompt": true,
+     "n_segs": 1,
+     "unmatched_segs": [
+      "cargo test"
+     ]
+    },
+    "workflow": null
+   },
+   {
+    "agent_type": "(main)",
+    "async": false,
+    "denial": null,
+    "epoch": 1793847900.0,
+    "group": "human",
+    "head": "docker ps",
+    "label": "Bash: docker ps",
+    "lat": 60.0,
+    "main": true,
+    "match": "session",
+    "mode": "default",
+    "prompted": true,
+    "session": "sB",
+    "tail": "work/other",
+    "tool": "Bash",
+    "turn_cmd": null,
+    "why": {
+     "ask_hit": [],
+     "cfg_mode": null,
+     "est_prompt": true,
+     "n_segs": 1,
+     "unmatched_segs": [
+      "docker ps"
+     ]
+    },
+    "workflow": null
+   },
+   {
+    "agent_type": "(main)",
+    "async": false,
+    "denial": null,
+    "epoch": 1793847960.0,
+    "group": "human",
+    "head": "docker ps",
+    "label": "Bash: docker ps",
+    "lat": 60.0,
+    "main": true,
+    "match": "session",
+    "mode": "default",
+    "prompted": true,
+    "session": "sB",
+    "tail": "work/other",
+    "tool": "Bash",
+    "turn_cmd": null,
+    "why": {
+     "ask_hit": [],
+     "cfg_mode": null,
+     "est_prompt": true,
+     "n_segs": 1,
+     "unmatched_segs": [
+      "docker ps"
+     ]
+    },
+    "workflow": null
+   },
+   {
+    "agent_type": "(main)",
+    "async": false,
+    "denial": null,
+    "epoch": 1793848100.0,
+    "group": "human",
+    "head": "~/code/work/other/x.py",
+    "label": "Edit",
+    "lat": 12.0,
+    "main": true,
+    "match": "session",
+    "mode": "acceptEdits",
+    "prompted": true,
+    "session": "sB",
+    "tail": "work/other",
+    "tool": "Edit",
+    "turn_cmd": null,
+    "why": {
+     "allow_hit": [],
+     "ask_hit": [],
+     "cfg_mode": null,
+     "est_prompt": true
+    },
+    "workflow": null
+   },
+   {
+    "agent_type": "(main)",
+    "async": false,
+    "denial": null,
+    "epoch": 1793936610.0,
+    "group": "human",
+    "head": "pnpm test",
+    "label": "Bash: pnpm test",
+    "lat": 25.0,
+    "main": true,
+    "match": "session",
+    "mode": "default",
+    "prompted": true,
+    "session": "sB",
+    "tail": "work/other",
+    "tool": "Bash",
+    "turn_cmd": null,
+    "why": {
+     "ask_hit": [],
+     "cfg_mode": null,
+     "est_prompt": true,
+     "n_segs": 1,
+     "unmatched_segs": [
+      "pnpm test"
+     ]
+    },
+    "workflow": null
+   }
+  ],
+  "approved_prompts": {
+   "by_label": [
+    {
+     "approved": 24,
+     "example": "~/code/work/proj/README.md",
+     "label": "Read",
+     "risk": "medium",
+     "rule": "Read",
+     "sessions": 2,
+     "subagent_share": 0.92
+    },
+    {
+     "approved": 4,
+     "example": "pnpm test",
+     "label": "Bash: pnpm test",
+     "risk": "low",
+     "rule": "Bash(pnpm test:*)",
+     "sessions": 2,
+     "subagent_share": 0.25
+    },
+    {
+     "approved": 2,
+     "example": "docker ps",
+     "label": "Bash: docker ps",
+     "risk": "low",
+     "rule": "Bash(docker ps:*)",
+     "sessions": 1,
+     "subagent_share": 0.0
+    },
+    {
+     "approved": 1,
+     "example": "caf\u00e9",
+     "label": "Bash: caf\u00e9",
+     "risk": "low",
+     "rule": "Bash(caf\u00e9:*)",
+     "sessions": 1,
+     "subagent_share": 0.0
+    },
+    {
+     "approved": 1,
+     "example": "cargo test",
+     "label": "Bash: cargo test",
+     "risk": "low",
+     "rule": "Bash(cargo test:*)",
+     "sessions": 1,
+     "subagent_share": 0.0
+    },
+    {
+     "approved": 1,
+     "example": "make",
+     "label": "Bash: make",
+     "risk": "low",
+     "rule": "Bash(make:*)",
+     "sessions": 1,
+     "subagent_share": 0.0
+    },
+    {
+     "approved": 1,
+     "example": "~/code/work/other/x.py",
+     "label": "Edit",
+     "risk": "medium",
+     "rule": "Edit",
+     "sessions": 1,
+     "subagent_share": 0.0
+    }
+   ],
+   "note": "dialogs you approved (a logged prompt that was not user_rejected), by shape; measured from the --prompt-log hook, not inferred. Empty when no prompt log is supplied.",
+   "total_approved": 34,
+   "total_rejected": 1
+  },
+  "async_calls": {
+   "Bash: make build": {
+    "away_gt_30m": 0,
+    "n": 1,
+    "p50_s": 60.0,
+    "p90_s": 60.0,
+    "sum_capped_min": 1.0,
+    "union_min": 1.0
+   },
+   "Monitor": {
+    "away_gt_30m": 0,
+    "n": 1,
+    "p50_s": 500.0,
+    "p90_s": 500.0,
+    "sum_capped_min": 8.3,
+    "union_min": 8.3
+   }
+  },
+  "background_style": {
+   "Monitor": {
+    "away_gt_30m": 0,
+    "n": 1,
+    "p50_s": 500.0,
+    "p90_s": 500.0,
+    "sum_capped_min": 8.3,
+    "union_min": 8.3
+   }
+  },
+  "before_after_mode_split": {
+   "after": {
+    "burst": 22,
+    "by_mode": {
+     "acceptEdits": {
+      "burst": 0,
+      "dialogs": 1,
+      "human_n": 1,
+      "human_p50_s": 12.0,
+      "human_union_min": 0.2,
+      "lt_2s": 0,
+      "s2_5": 0
+     },
+     "default": {
+      "burst": 22,
+      "dialogs": 26,
+      "human_n": 4,
+      "human_p50_s": 60.0,
+      "human_union_min": 3.2,
+      "lt_2s": 0,
+      "s2_5": 0
+     },
+     "plan": {
+      "burst": 0,
+      "dialogs": 1,
+      "human_n": 1,
+      "human_p50_s": 50.0,
+      "human_union_min": 0.8,
+      "lt_2s": 0,
+      "s2_5": 0
+     }
+    },
+    "calls": 28,
+    "dialogs": 28,
+    "dialogs_per_1000_calls": 1000.0,
+    "human_n": 6,
+    "human_p50_s": 50.0,
+    "human_union_min": 4.3,
+    "lt_2s": 0,
+    "s2_5": 0
+   },
+   "before": {
+    "burst": 0,
+    "by_mode": {
+     "acceptEdits": {
+      "burst": 0,
+      "dialogs": 2,
+      "human_n": 2,
+      "human_p50_s": 60.0,
+      "human_union_min": 1.6,
+      "lt_2s": 0,
+      "s2_5": 0
+     },
+     "default": {
+      "burst": 0,
+      "dialogs": 3,
+      "human_n": 3,
+      "human_p50_s": 30.0,
+      "human_union_min": 1.2,
+      "lt_2s": 0,
+      "s2_5": 0
+     },
+     "plan": {
+      "burst": 0,
+      "dialogs": 2,
+      "human_n": 0,
+      "human_p50_s": 0.0,
+      "human_union_min": 0.0,
+      "lt_2s": 1,
+      "s2_5": 1
+     }
+    },
+    "calls": 17,
+    "dialogs": 7,
+    "dialogs_per_1000_calls": 411.8,
+    "human_n": 5,
+    "human_p50_s": 35.0,
+    "human_union_min": 2.8,
+    "lt_2s": 1,
+    "s2_5": 1
+   },
+   "split_at": "2026-11-04T02:00:00+00:00"
+  },
+  "by_mode": {
+   "acceptEdits": {
+    "burst": 0,
+    "dialogs": 3,
+    "human_n": 3,
+    "human_p50_s": 35.0,
+    "human_union_min": 1.8,
+    "lt_2s": 0,
+    "s2_5": 0
+   },
+   "default": {
+    "burst": 22,
+    "dialogs": 29,
+    "human_n": 7,
+    "human_p50_s": 40.0,
+    "human_union_min": 4.4,
+    "lt_2s": 0,
+    "s2_5": 0
+   },
+   "plan": {
+    "burst": 0,
+    "dialogs": 3,
+    "human_n": 1,
+    "human_p50_s": 50.0,
+    "human_union_min": 0.8,
+    "lt_2s": 1,
+    "s2_5": 1
+   }
+  },
+  "fast_error_calls": 1,
+  "meta": {
+   "calls_with_latency": 45,
+   "join_window_s": 10.0,
+   "log_prompts_matched": 37,
+   "logged_prompts": 38,
+   "matched_by": {
+    "guess": 4,
+    "hash": 2,
+    "id": 1,
+    "session": 30,
+    "unmatched_rows": 1
+   },
+   "note": "human minutes are the union of wait intervals per session; label/project figures are unions within the group",
+   "prompt_log": {
+    "excluded_other_account": 1,
+    "file_found": true,
+    "kept": 38,
+    "rows_read": 41,
+    "skipped_before_since": 0,
+    "skipped_malformed": 1,
+    "skipped_other_kind": 1
+   },
+   "slow_threshold_s": 30.0,
+   "thresholds": {
+    "auto_lt_s": 2.0,
+    "burst_dialogs_per_min": 20,
+    "human_ge_s": 5.0,
+    "mode_split": "2026-11-04T02:00:00+00:00",
+    "wait_cap_s": 1800.0
+   }
+  },
+  "prompt_wait": {
+   "burst": {
+    "away_gt_30m": 0,
+    "n": 22,
+    "p50_s": 8.0,
+    "p90_s": 8.0,
+    "sum_capped_min": 2.9,
+    "union_min": 0.5
+   },
+   "dialogs": 35,
+   "groups": {
+    "async": 1,
+    "burst": 22,
+    "human": 11,
+    "lt2s": 1,
+    "mid": 1,
+    "question": 1
+   },
+   "human": {
+    "away_gt_30m": 0,
+    "n": 11,
+    "p50_s": 40.0,
+    "p90_s": 60.0,
+    "sum_capped_min": 7.4,
+    "union_min": 7.0
+   },
+   "human_gt_600s": 0,
+   "human_gt_60s": 0,
+   "human_main_thread": {
+    "away_gt_30m": 0,
+    "n": 10,
+    "p50_s": 50.0,
+    "p90_s": 60.0,
+    "sum_capped_min": 6.9,
+    "union_min": 6.9
+   },
+   "human_subagent": {
+    "away_gt_30m": 0,
+    "n": 1,
+    "p50_s": 30.0,
+    "p90_s": 30.0,
+    "sum_capped_min": 0.5,
+    "union_min": 0.5
+   },
+   "lt2s": {
+    "away_gt_30m": 0,
+    "n": 1,
+    "p50_s": 1.0,
+    "p90_s": 1.0,
+    "sum_capped_min": 0.0,
+    "union_min": 0.0
+   }
+  },
+  "prompt_wait_by_day": [
+   {
+    "away_gt_30m": 0,
+    "day": "2026-11-05",
+    "n": 5,
+    "p50_s": 50.0,
+    "p90_s": 60.0,
+    "sum_capped_min": 3.9,
+    "union_min": 3.9
+   },
+   {
+    "away_gt_30m": 0,
+    "day": "2026-11-01",
+    "n": 5,
+    "p50_s": 35.0,
+    "p90_s": 60.0,
+    "sum_capped_min": 3.1,
+    "union_min": 2.8
+   },
+   {
+    "away_gt_30m": 0,
+    "day": "2026-11-06",
+    "n": 1,
+    "p50_s": 25.0,
+    "p90_s": 25.0,
+    "sum_capped_min": 0.4,
+    "union_min": 0.4
+   }
+  ],
+  "prompt_wait_by_label": [
+   {
+    "away_gt_30m": 0,
+    "denied": 0,
+    "example": "pnpm test",
+    "label": "Bash: pnpm test",
+    "n": 4,
+    "p50_s": 40.0,
+    "p90_s": 60.0,
+    "subagent_share": 0.25,
+    "sum_capped_min": 2.6,
+    "union_min": 2.2
+   },
+   {
+    "away_gt_30m": 0,
+    "denied": 0,
+    "example": "docker ps",
+    "label": "Bash: docker ps",
+    "n": 2,
+    "p50_s": 60.0,
+    "p90_s": 60.0,
+    "subagent_share": 0.0,
+    "sum_capped_min": 2.0,
+    "union_min": 2.0
+   },
+   {
+    "away_gt_30m": 0,
+    "denied": 0,
+    "example": "make",
+    "label": "Bash: make",
+    "n": 1,
+    "p50_s": 50.0,
+    "p90_s": 50.0,
+    "subagent_share": 0.0,
+    "sum_capped_min": 0.8,
+    "union_min": 0.8
+   },
+   {
+    "away_gt_30m": 0,
+    "denied": 0,
+    "example": "cargo test",
+    "label": "Bash: cargo test",
+    "n": 1,
+    "p50_s": 50.0,
+    "p90_s": 50.0,
+    "subagent_share": 0.0,
+    "sum_capped_min": 0.8,
+    "union_min": 0.8
+   },
+   {
+    "away_gt_30m": 0,
+    "denied": 0,
+    "example": "caf\u00e9",
+    "label": "Bash: caf\u00e9",
+    "n": 1,
+    "p50_s": 35.0,
+    "p90_s": 35.0,
+    "subagent_share": 0.0,
+    "sum_capped_min": 0.6,
+    "union_min": 0.6
+   },
+   {
+    "away_gt_30m": 0,
+    "denied": 1,
+    "example": "git push origin main",
+    "label": "Bash: git push",
+    "n": 1,
+    "p50_s": 20.0,
+    "p90_s": 20.0,
+    "subagent_share": 0.0,
+    "sum_capped_min": 0.3,
+    "union_min": 0.3
+   },
+   {
+    "away_gt_30m": 0,
+    "denied": 0,
+    "example": "~/code/work/other/x.py",
+    "label": "Edit",
+    "n": 1,
+    "p50_s": 12.0,
+    "p90_s": 12.0,
+    "subagent_share": 0.0,
+    "sum_capped_min": 0.2,
+    "union_min": 0.2
+   }
+  ],
+  "prompt_wait_by_project": [
+   {
+    "away_gt_30m": 0,
+    "n": 6,
+    "p50_s": 50.0,
+    "p90_s": 60.0,
+    "project": "work/other",
+    "sum_capped_min": 4.3,
+    "union_min": 4.3
+   },
+   {
+    "away_gt_30m": 0,
+    "n": 5,
+    "p50_s": 35.0,
+    "p90_s": 60.0,
+    "project": "work/proj",
+    "sum_capped_min": 3.1,
+    "union_min": 2.8
+   }
+  ],
+  "question_wait": {
+   "away_gt_30m": 0,
+   "by_project": [
+    {
+     "away_gt_30m": 0,
+     "n": 1,
+     "p50_s": 90.0,
+     "p90_s": 90.0,
+     "project": "work/proj",
+     "sum_capped_min": 1.5,
+     "union_min": 1.5
+    }
+   ],
+   "n": 1,
+   "p50_s": 90.0,
+   "p90_s": 90.0,
+   "sum_capped_min": 1.5,
+   "union_min": 1.5
+  },
+  "slow_tools_not_prompts": [
+   {
+    "away_gt_30m": 0,
+    "example": "cargo build",
+    "label": "Bash: cargo build",
+    "n": 1,
+    "p50_s": 45.0,
+    "p90_s": 45.0,
+    "subagent_share": 0.0,
+    "sum_capped_min": 0.8,
+    "union_min": 0.8
+   }
+  ],
+  "tool_latency_by_tool": [
+   {
+    "away_gt_30m": 0,
+    "n": 5,
+    "p50_s": 2.0,
+    "p90_s": 45.0,
+    "sum_capped_min": 0.9,
+    "tool": "Bash",
+    "union_min": 0.9
+   },
+   {
+    "away_gt_30m": 0,
+    "n": 1,
+    "p50_s": 20.0,
+    "p90_s": 20.0,
+    "sum_capped_min": 0.3,
+    "tool": "Edit",
+    "union_min": 0.3
+   },
+   {
+    "away_gt_30m": 0,
+    "n": 1,
+    "p50_s": 1.0,
+    "p90_s": 1.0,
+    "sum_capped_min": 0.0,
+    "tool": "Read",
+    "union_min": 0.0
+   }
+  ],
+  "user_gap_buckets": [
+   {
+    "bucket": "<30s",
+    "n": 1,
+    "total_min": 0.3
+   },
+   {
+    "bucket": "30s-2m",
+    "n": 1,
+    "total_min": 0.8
+   },
+   {
+    "bucket": "2-10m",
+    "n": 1,
+    "total_min": 5.0
+   },
+   {
+    "bucket": "10-30m",
+    "n": 1,
+    "total_min": 15.0
+   },
+   {
+    "bucket": ">30m (away)",
+    "n": 2,
+    "total_min": 1538.3
+   }
+  ],
+  "user_gap_by_last_tool": [
+   {
+    "away_gt_30m": 0,
+    "last_tool": "(no tools)",
+    "n": 2,
+    "p50_s": 900.0,
+    "p90_s": 900.0,
+    "total_min": 15.8
+   },
+   {
+    "away_gt_30m": 0,
+    "last_tool": "Bash",
+    "n": 2,
+    "p50_s": 300.0,
+    "p90_s": 300.0,
+    "total_min": 5.3
+   }
+  ],
+  "user_gap_live": {
+   "after_interrupt": 1,
+   "away_gt_30m": 0,
+   "n": 4,
+   "next_prompt_is_command": 1,
+   "next_prompt_short_le25ch": 4,
+   "p50_s": 300.0,
+   "p90_s": 900.0,
+   "total_min": 21.1
+  }
+ }
+}

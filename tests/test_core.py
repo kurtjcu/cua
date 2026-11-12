@@ -149,6 +149,55 @@ class TestParser(unittest.TestCase):
         self.assertEqual(s.turns[1].command, "compact")
         self.assertEqual(s.compactions, 1)
 
+    def test_huge_integer_line_does_not_abort(self):
+        """CPython 3.11+ raises a plain ValueError (not JSONDecodeError) for an integer literal longer than
+        4300 digits. One such line must be skipped like any other unparseable line. The literal is spliced
+        in as text: json.dumps or str() of an int that large raises on 3.11+. Python 3.9 and 3.10 have no
+        limit and parse the line, so every assertion below holds on both."""
+        huge = "1" + "0" * 4999  # a 5000-digit integer literal (redacted: no real data)
+
+        def fresh_dir():
+            tmp = tempfile.TemporaryDirectory()
+            self.addCleanup(tmp.cleanup)
+            return tmp.name
+
+        with self.subTest(site="transcript"):
+            d = fresh_dir()
+            os.makedirs(os.path.join(d, "projects", "-x"))
+            lines = [
+                json.dumps({"type": "user", "sessionId": "s", "cwd": "/x", "timestamp": "2026-07-01T00:00:00Z",
+                            "message": {"role": "user", "content": "list the files"}}),
+                '{"type": "progress", "sessionId": "s", "data": {"redacted": true, "n": ' + huge + "}}",
+                json.dumps({"type": "assistant", "sessionId": "s", "timestamp": "2026-07-01T00:00:01Z",
+                            "message": {"id": "m1", "model": "m", "content": [
+                                {"type": "tool_use", "id": "t1", "name": "Bash", "input": {"command": "ls"}}]}}),
+            ]
+            with open(os.path.join(d, "projects", "-x", "s.jsonl"), "w") as f:
+                f.write("\n".join(lines))
+            ss = claude_code.load_sessions(d, "t")
+            self.assertEqual(len(ss), 1)
+            s = ss[0]
+            self.assertEqual([t.prompt for t in s.turns], ["list the files"])
+            self.assertEqual([c.input for c in s.turns[0].tool_calls], [{"command": "ls"}])
+
+        with self.subTest(site="history"):
+            d = fresh_dir()
+            with open(os.path.join(d, "history.jsonl"), "w") as f:
+                f.write(json.dumps({"display": "list the files", "project": "/x", "timestamp": 1}) + "\n")
+                f.write('{"display": "redacted", "project": "/x", "timestamp": ' + huge + "}\n")
+            entries = claude_code.load_prompt_history(d)
+            self.assertEqual([e for e in entries if e.get("display") == "list the files"],
+                             [{"display": "list the files", "project": "/x", "timestamp": 1}])
+
+        with self.subTest(site="settings"):
+            d = fresh_dir()
+            with open(os.path.join(d, "settings.json"), "w") as f:
+                f.write('{"permissions": {"allow": ["Bash(ls)"]}, "n": ' + huge + "}")
+            with open(os.path.join(d, "settings.local.json"), "w") as f:
+                f.write(json.dumps({"permissions": {"allow": ["Bash(make *)"]}}))
+            cfg = claude_code.effective_permission_config(d, None)
+            self.assertIn("Bash(make *)", cfg.allow)
+
     def test_since_applies_to_subagent_only_transcripts(self):
         """Subagent files have no main-thread turns, so Session.start is None. They must still
         be windowed, and must not survive as orphan sessions when their parent is out of window."""
@@ -258,6 +307,16 @@ class TestEffectivePermissions(unittest.TestCase):
         self.assertFalse(permissions.would_prompt(tc("Bash", command="make all"), ca))
         self.assertTrue(permissions.would_prompt(tc("Bash", command="make all"), cb))
         self.assertFalse(permissions.would_prompt(tc("Bash", command="git status"), cb))
+
+    def test_settings_undecodable_byte_keeps_rules(self):
+        # Redacted fixture, no real data: 0xff is never valid UTF-8. One stray byte must not drop the rules.
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        with open(os.path.join(tmp.name, "settings.json"), "wb") as f:
+            f.write(b'{"permissions": {"allow": ["Bash(ls)"]}, "note": "caf\xff"}')
+        cfg = claude_code.effective_permission_config(tmp.name, None)
+        self.assertIn("Bash(ls)", cfg.allow)
+        self.assertEqual([os.path.basename(s) for s in cfg.sources], ["settings.json"])
 
     def test_recorded_mode_parsed(self):
         d = tempfile.mkdtemp()

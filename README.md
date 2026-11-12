@@ -69,7 +69,7 @@ python3 -m cua waits --out out/me                        # uses PROMPT_LOG from 
 ```
 `waits` measures where sessions sit still — how long permission dialogs kept you waiting, and other pauses. If you log permission prompts with a `PermissionRequest` hook and set `PROMPT_LOG` in `.env`, it also emits `approved_prompts`: the prompts you actually said yes to, grouped by shape with a suggested allow rule and risk tier — the precise input for trimming your allowlist. Without a prompt log it still reports waits, but `approved_prompts` is empty (Claude Code doesn't log approvals on its own). The `/cua-audit` skill runs this step automatically when `PROMPT_LOG` is set, and the blocker analyst prefers it over the estimate.
 
-A ready-made, shape-only logger ships in [`hooks/`](hooks/) — `python3 hooks/install.py` sets it up (it asks first and only records the *shape* of each prompt, never values). See [`hooks/README.md`](hooks/README.md).
+A ready-made, shape-only logger ships in [`hooks/`](hooks/) — `python3 hooks/install.py` sets it up (it asks first). For each prompt it logs the tool name and a short pattern: for Bash the program name only, never its arguments (a secret typed as the command word itself would be logged as the program name); for file tools a path pattern, for WebFetch the hostname. Rows also carry the project path, the session and tool-use ids and a one-way call fingerprint. See [`hooks/README.md`](hooks/README.md).
 
 ### Audit the config layer (optional)
 ```bash

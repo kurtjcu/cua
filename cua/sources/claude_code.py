@@ -101,7 +101,10 @@ def parse_session_file(path: str, account: str) -> Session | None:
                 continue
             try:
                 records.append(json.loads(line))
-            except json.JSONDecodeError:
+            except ValueError:
+                # JSONDecodeError is a subclass of ValueError. CPython 3.11+ raises a plain ValueError for
+                # an integer literal longer than its 4300-digit limit, so one such line is skipped like
+                # any other unparseable line instead of aborting the run.
                 continue
     if not records:
         return None
@@ -280,7 +283,7 @@ def load_prompt_history(config_dir: str) -> list[dict]:
             for line in f:
                 try:
                     out.append(json.loads(line))
-                except json.JSONDecodeError:
+                except ValueError:
                     pass
     return out
 
@@ -298,10 +301,14 @@ def _settings_files(config_dir: str | None, project_dir: str | None) -> list[str
 def _load_into(cfg: PermissionConfig, fp: str) -> None:
     if not os.path.exists(fp) or fp in cfg.sources:
         return
+    # Settings are read as UTF-8 with undecodable bytes replaced, like the transcript and history readers.
+    # So a stray byte, or a locale that is not UTF-8, cannot raise UnicodeDecodeError (a ValueError) and
+    # silently drop the file's rules. The ValueError catch now covers only JSON that does not parse,
+    # including an integer literal over the 4300-digit limit.
     try:
-        with open(fp) as f:
+        with open(fp, encoding="utf-8", errors="replace") as f:
             data = json.load(f)
-    except (OSError, json.JSONDecodeError):
+    except (OSError, ValueError):
         return
     perms = data.get("permissions") or {}
     cfg.allow += [r for r in perms.get("allow") or [] if isinstance(r, str)]

@@ -35,7 +35,7 @@ def load_settings(settings_path: Path) -> dict:
         return {}
     try:
         return json.loads(settings_path.read_text(encoding="utf-8"))
-    except (json.JSONDecodeError, OSError) as e:
+    except (ValueError, OSError) as e:
         sys.exit(f"error: could not read {settings_path}: {e}")
 
 
@@ -126,9 +126,17 @@ def main() -> None:
     print(f"  2. add a PermissionRequest hook entry to {settings_path}")
     print(f"       (merged in; your other hooks are untouched)")
     print()
-    print("What it logs (shape only, never values — see hooks/README.md):")
+    print("What it logs (see hooks/README.md for the exact rules):")
     print(f"  one tab-separated row per permission prompt -> {log_path}")
-    print("  e.g.  2026-11-12T...  prompt  default  ~/code/x  Bash: git status  ...")
+    print("  each row: the time, the permission mode, the project path (home shown as ~),")
+    print("  the tool name plus a short pattern, the tool-use and session ids, and a")
+    print("  one-way call fingerprint (it cannot be read back, but it can confirm a guess")
+    print("  at an exact command).")
+    print("  The pattern is, for Bash, the program name only, never its arguments (a secret")
+    print("  typed as the command word itself would be logged as the program name); for")
+    print("  file tools a path pattern; for Skill the skill name; for WebFetch the hostname.")
+    print("  Never file contents.")
+    print("  e.g.  2026-11-12T...  prompt  default  ~/code/x  Bash: git  ...")
     print()
     print("It is a pure observer: it NEVER approves or denies a prompt, and fails")
     print("open on any error. Nothing leaves your machine.")

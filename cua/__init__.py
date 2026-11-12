@@ -4,4 +4,4 @@ Version is hand-maintained: bump __version__ and add a CHANGELOG.md entry on eac
 release (see CONTRIBUTING.md → Releasing).
 """
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"

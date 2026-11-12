@@ -25,6 +25,8 @@ git archive HEAD | tar -x -C "$dest"
 
 # Remove private, non-tool content that is tracked here but must not be published.
 rm -rf "$dest/docs/findings"
+# Private repo-management tooling (its sweep patterns name private identifiers).
+rm -f "$dest/scripts/publish-public.sh"
 refs="$dest/.claude/skills/sdl-audit/references"
 if [ -d "$refs" ]; then
   find "$refs" -type f ! -name 'example-sdl-policy.md' -delete

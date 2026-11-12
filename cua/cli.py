@@ -190,6 +190,9 @@ def cmd_waits(a) -> int:
           f"{m['id']} by tool_use_id, {m['hash']} by call hash, {m['session']} by session+time, "
           f"{m['guess']} by time/tool guess "
           f"({m['unmatched_rows']} unmatched)", file=sys.stderr)
+    note = waits.prompt_log_note(res["meta"]["prompt_log"])
+    if note:
+        print(f"prompt log: {note}", file=sys.stderr)
     print(f"wrote {a.out}/waits.json ({len(ss)} sessions)", file=sys.stderr)
     return 0
 

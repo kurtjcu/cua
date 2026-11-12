@@ -26,19 +26,57 @@ Nothing but log. It is a **pure observer**:
 
 ## What it logs — and what it doesn't
 
-It records a **shape**, never a value. One tab-separated row per prompt:
+Each row holds the time, the permission mode, the project path, a short **shape** of
+the call, the tool-use and session ids, and a call fingerprint. The shape never holds
+file contents or a Bash command's arguments.
+One tab-separated row per prompt:
 
 ```
 time   kind   mode   project   shape   tool_use_id   session_id   call_hash
 ```
 
-- **shape** is the tool plus the first word or two — `Bash: git status`,
-  `Edit: <proj>/src/app.ts`, `WebFetch: docs.claude.com`. Quoted strings, `=values`,
-  and long tokens are masked out *before* anything is written.
-- **call_hash** is a 12-hex fingerprint of the tool name + input so `cua waits` can
-  match a logged prompt to the exact transcript call. It is **not reversible** and
-  stores nothing readable.
-- No command values, file contents, or arguments are ever written.
+- **project** is the working directory, with your home shown as `~` (empty when Claude
+  Code sends none).
+- **shape** is the tool plus a short pattern: `Bash: git`, `Edit: <proj>/src/app.ts`,
+  `WebFetch: docs.claude.com`. For a Bash command it keeps the **program name only**:
+  the leading run of letters, digits and `_ . + -` at the start of the command after
+  masking, plus a `[multi-line]` flag when the command spans lines. `cat<<<x` logs
+  `Bash: cat` and `echo${IFS}x` logs `Bash: echo`; nothing after the name is
+  written, with or without whitespace. A program given with a path logs its file
+  name only when the path ends at a space, tab, newline or the end of the command and
+  no `/` follows anywhere after it: `/opt/x/deploy.sh --y` logs `Bash: deploy.sh`, and
+  nothing before the last `/` is logged. Any other path logs `Bash: <other>`:
+  `/home/u/Acme Corp/run.sh`, `/x/acme;ls`, `/opt/c=acme/run` and `./run.sh src/a` all do.
+  The shape is also the fixed token `Bash: <other>` for a name of 24 or more characters
+  (counting `.` and `+`), a quoted first word, `{a,b}`, a subshell, `$(...)`, and a
+  command that is not a string. A command that starts with an assignment
+  (`TOKEN=abc123 npm test`) logs the variable name, `Bash: TOKEN`; no value is ever
+  logged. Masking is applied before the name is taken: quoted strings (read the way
+  the shell reads them, backslash escapes included), everything after an unpaired or
+  escaped quote, `=values`, and tokens of 24 or more letters, digits, `_` or `-`.
+  Only Bash shapes are masked. File tools keep a path pattern (`Edit: <proj>/src/app.ts`),
+  Skill its name and WebFetch its hostname (`WebFetch: docs.claude.com`), each cut
+  to 60 characters, and never file contents, URL paths or query strings.
+- `echo hunter2` logs `Bash: echo`. `cua waits` reads only the tool name from the
+  shape, so dropping the arguments does not change what it measures. The limit: the
+  hook cannot tell a program name from a secret typed as the command word itself, so
+  a bare `hunter2` logs `Bash: hunter2`. Nor can it see a path through an unquoted
+  space, because the shell runs the word before the space: `Acme Corp/run.sh` logs
+  `Bash: Acme` and `~/a b` logs `Bash: a`.
+- **call_hash** is an unsalted 12-hex fingerprint of the tool name + input so
+  `cua waits` can match a logged prompt to the exact transcript call. It cannot be
+  read back, but anyone holding the log can confirm a guess at an exact command (it
+  is an unsalted hash).
+- Control characters in any column are written as spaces, so a crafted tool input
+  cannot shift columns or forge rows.
+
+**File modes.** A new log is created `0600` in a `0700` directory. An existing log
+keeps its mode; tighten it with `chmod 600 ~/.local/state/cua/prompts.log` and
+`chmod 700 ~/.local/state/cua`.
+
+The repo copy of the hook and the copy in `~/.claude/hooks/` are separate files:
+changes to the repo hook reach your machine only after you re-run
+`python3 hooks/install.py`.
 
 The log stays on your machine (default `~/.local/state/cua/prompts.log`). Nothing
 leaves your computer.
